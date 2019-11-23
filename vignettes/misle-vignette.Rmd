@@ -1,0 +1,30 @@
+---
+title: "misle-vignette"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{misle-vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+
+# Introduction 
+Missing values are ubiquitous in clinical and social science data. Incomplete data not only leads to loss of information but can also introduce bias, which poses a significant challenge for data analysis. Various imputation procedures were designed to handle incomplete data under different missingness mechanisms. Rubin (1977) introduced multiple imputation to attain valid inference from data with ignorable nonresponse. Some techniques and `R` packages are developed to implement multiple imputations. However, the running time of these methods can be excessive for large datasets. We propose a scalable multiple imputation method based on variational and denoising autoencoders.  Our `R` package `misle` is built using the `tensorflow`package in `R`, which enables fast computation and thus provides a scalable solution for missing data.  
+
+The `misle` package has the following attributes:
+
+* Cope with mixed-type data (numeric/binary/multiclass)
+
+* Scalable multiple imputation
+
+* Two multiple imputation options: through variational autoencoders (VAE) or denoising autoencoders (DAE)
+
+* Imputed datasets can be in one-hot format or the same format as the original data
+
+This document describes some basic feature of `misle` and shows how to use `misle` in details.
+
+# Installation
+
+First, we install the`R` package `misle`, which is available from CRAN. 
+
