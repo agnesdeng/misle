@@ -5,6 +5,7 @@ mivae_optimizer<-function(x, na_idx,networkOutput,output_split,output_struc,kld=
   na_split=tf$split(na_idx,output_split,axis= as.integer(1))
   true_split=tf$split(x,output_split,axis= as.integer(1))
   x_reconstr_mean<-networkOutput$x_reconstr_mean
+  x_reconstr_logvar<-networkOutput$x_reconstr_logvar
   z_log_sigma_sq<-networkOutput$z_log_sigma_sq
   z_mean<-networkOutput$z_mean
   pred_split=tf$split(x_reconstr_mean,output_split,axis=as.integer(1))
@@ -25,13 +26,13 @@ mivae_optimizer<-function(x, na_idx,networkOutput,output_split,output_struc,kld=
     }
   }
 
-  #log_var=tf$compat$v1$log(tf$nn$moments(x,axes=as.integer(1))[[2]])
-  #loss1=tf$reduce_sum(tf$multiply(tf$exp(-log_var),tf$reduce_sum(cost_list)))
-  #loss2=tf$reduce_mean(log_var)
-  #joint_loss<-0.5*(loss1+loss2)
+  log_var=x_reconstr_logvar
+  loss1=tf$reduce_mean(tf$multiply(tf$exp(-log_var),tf$reduce_sum(cost_list)))
+  loss2=tf$reduce_mean(log_var)
+  joint_loss<-0.5*(loss1+loss2)
 
 
-  joint_loss<-tf$reduce_sum(cost_list)
+  #joint_loss<-tf$reduce_sum(cost_list)
 
   #KLD
    loss_latent<--0.5*tf$reduce_sum(1+z_log_sigma_sq-tf$square(z_mean)-tf$exp(z_log_sigma_sq), reduction_indices=shape(1))
@@ -54,6 +55,7 @@ midae_optimizer<-function(x,na_idx,networkOutput,output_split,output_struc){
   na_split=tf$split(na_idx,output_split,axis= as.integer(1))
   true_split=tf$split(x,output_split,axis= as.integer(1))
   x_reconstr_mean<-networkOutput$x_reconstr_mean
+  x_reconstr_logvar<-networkOutput$x_reconstr_logvar
   pred_split=tf$split(x_reconstr_mean,output_split,axis=as.integer(1))
   cost_list=list()
   for (n in 1:length(output_struc)){
@@ -79,7 +81,12 @@ midae_optimizer<-function(x,na_idx,networkOutput,output_split,output_struc){
 
 
 
-  joint_loss<-tf$reduce_sum(cost_list)
+  #joint_loss<-tf$reduce_sum(cost_list)
+  log_var=x_reconstr_logvar
+  loss1=tf$reduce_mean(tf$multiply(tf$exp(-log_var),tf$reduce_sum(cost_list)))
+  loss2=tf$reduce_mean(log_var)
+  joint_loss<-0.5*(loss1+loss2)
+
   #log_var=tf$compat$v1$log(tf$nn$moments(x,axes=as.integer(1))[[2]])
   #loss1=tf$reduce_sum(tf$multiply(tf$exp(-log_var),tf$reduce_sum(cost_list)))
   #loss2=tf$reduce_mean(log_var)

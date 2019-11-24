@@ -45,6 +45,8 @@ midae_init<-function(encoder_structure,decoder_structure,
   ############################
   weights[["decoder_weights"]][["out_mean"]]=tf$Variable(he_init(decoder_layer[D], decoder_layer[D+1]))
   weights[["decoder_biases"]][["out_mean"]]=tf$Variable(tf$zeros(decoder_layer[D+1], dtype=tf$float32))
+  weights[["decoder_weights"]][["out_logvar"]]=tf$Variable(he_init(decoder_layer[D], decoder_layer[D+1]))
+  weights[["decoder_biases"]][["out_logvar"]]=tf$Variable(tf$zeros(decoder_layer[D+1], dtype=tf$float32))
 
 
   return(weights)
@@ -78,6 +80,12 @@ denoise_decoder<-function(act,z, weights, biases, hidden_keep,decoder_structure)
   }
 
   x_reconstr_mean<-tf$add(tf$matmul(tf$nn$dropout(z,hidden_keep), weights[['out_mean']]), biases[['out_mean']])
+  #x_reconstr_logvar<-tf$nn$sigmoid(tf$add(tf$matmul(z, weights[['out_logvar']]), biases[['out_logvar']]))
+  x_reconstr_logvar<-tf$add(tf$matmul(tf$nn$dropout(z,hidden_keep), weights[['out_logvar']]), biases[['out_logvar']])
+  #x_reconstr_mean<-tf$add(tf$matmul(z, weights[['out_mean']]), biases[['out_mean']])
+  #return(x_reconstr_mean)
+  return(list("x_reconstr_mean"=x_reconstr_mean, "x_reconstr_logvar"=x_reconstr_logvar))
+
   return(x_reconstr_mean)
 }
 
@@ -87,6 +95,8 @@ midae_output<-function(act,x,network_weights,encoder_structure,decoder_structure
   tf <- tensorflow::tf
   #compressed value
   z<-denoise_encoder(act,x, network_weights[["encoder_weights"]], network_weights[["encoder_biases"]],input_keep,hidden_keep,encoder_structure)
-  x_reconstr_mean <-denoise_decoder(act,z, network_weights[["decoder_weights"]],network_weights[["decoder_biases"]], hidden_keep,decoder_structure)
-  return(list("x_reconstr_mean"=x_reconstr_mean))
+  Out <-denoise_decoder(act,z, network_weights[["decoder_weights"]],network_weights[["decoder_biases"]], hidden_keep,decoder_structure)
+  x_reconstr_mean<-Out$x_reconstr_mean
+  x_reconstr_logvar<-Out$x_reconstr_logvar
+  return(list("x_reconstr_mean"=x_reconstr_mean, "x_reconstr_logvar"=x_reconstr_logvar))
 }
