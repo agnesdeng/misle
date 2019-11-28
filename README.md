@@ -5,6 +5,10 @@ The R package `misle` is built using TensorFlow™, which enables fast numerical
 
 `misle` is still at the early stage of development so lots of work have to be done before it is officially released. 
 
+## Current version 
+- **multiple imputation by variational autoencoders**
+- **multiple imputation by denoising autoencoders(with dropout)**
+
 ## Expected to be done in 2020
 - **implement multiple imputation by XGboost**
 
@@ -37,4 +41,5 @@ Gal, Y., Hron, J., & Kendall, A. (2017). Concrete Dropout. NIPS.
 Kendall, A., & Gal, Y. (2017). What Uncertainties Do We Need in Bayesian Deep Learning for Computer Vision? NIPS.
  
 Kingma, D. P., \& Welling, M. (2013). Auto-encoding variational bayes. Retrieved from https://arxiv.org/abs/1312.6114
- 
+
+Alex Stenlake & Ranjit Lall. Python Package MIDAS: Multiple Imputation with Denoising Autoencoders https://github.com/Oracen/MIDAS
