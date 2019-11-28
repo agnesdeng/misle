@@ -12,6 +12,32 @@ The R package `misle` is built using TensorFlow™, which enables fast numerical
 - **multiple imputation by variational autoencoders**
 - **multiple imputation by denoising autoencoders(with dropout)**
 
+## Install
+
+The current version of `misle` can be installed from GitHub as follows:
+
+``` r
+install.packages("devtools")
+devtools::install_github("agnesdeng/misle")
+```
+Similar to the `keras` R package, we have a function `install_misle()` to ensure that tensorflow would be installed as required. 
+
+``` r
+library(misle)
+install_misle()
+```
+
+Usually after these two steps, everything would be fine for Linux & Mac. If the imputer can't set up and returns error, it may be the case that the `tensorflow` was not loaded. So the following would help: 
+```r
+library(tensorflow)
+```
+
+## Current version
+
+- **multiple imputation by variational autoencoders**
+- **multiple imputation by denoising autoencoders(with dropout)**
+
+
 ## Expected to be done in 2020
 - **implement multiple imputation by XGboost**
 
