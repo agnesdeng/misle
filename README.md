@@ -6,9 +6,9 @@ The R package `misle` is built using TensorFlow™, which enables fast numerical
 
 
 ## Expected to be done in the first half of 2020
--- Simulation studies 
+- Simulation studies 
 to show whether multiple imputation using variational autoencoders and denoising autoencoders with dropout will lead to statistical valid inference. 
 
--- Visual diagnostics
+- Visual diagnostics
 to show users whether the imputed values are sensible
 
