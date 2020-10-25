@@ -6,7 +6,7 @@
 \usage{
 install_misle(method = c("auto", "virtualenv", "conda"),
   conda = "auto", version = "default", tensorflow = "default",
-  python_version = "3.6", extra_packages = c("tensorflow-hub"), ...)
+  extra_packages = c("tensorflow-hub"), ...)
 }
 \arguments{
 \item{method}{Installation method ("virtualenv" or "conda")}

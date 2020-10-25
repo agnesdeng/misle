@@ -5,7 +5,7 @@
 \title{mivae cost function}
 \usage{
 mivae_optimizer(x, na_idx, networkOutput, output_split, output_struc,
-  kld = TRUE, kld_weight = 0.1)
+  kld = TRUE, loss_weight = 1, kld_weight = 1, sigma_weight = 1)
 }
 \description{
 mivae cost function

@@ -2,10 +2,10 @@
 % Please edit documentation in R/data-scaler.R
 \name{inv.minmax_data}
 \alias{inv.minmax_data}
-\title{This function back-transform data}
+\title{This function back-transform data to an output as data matrix}
 \usage{
 inv.minmax_data(data, colmin, colmax)
 }
 \description{
-This function back-transform data
+This function back-transform data to an output as data matrix
 }
