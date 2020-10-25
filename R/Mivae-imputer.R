@@ -35,6 +35,7 @@ Mivae <- R6::R6Class("Mivae",
                    output_split=NULL,
                    data=NULL,
                    onehot.df=NULL,
+                   bootstrap.df=NULL,
                    columns_list=NULL,
                    act=NULL,
                    weight_decay=NULL,
@@ -43,6 +44,8 @@ Mivae <- R6::R6Class("Mivae",
                    decay=NULL,
                    momentum=NULL,
                    kld_weight=NULL,
+                   loss_weight=NULL,
+                   sigma_weight=NULL,
                    initialize = function(data,
                                          n_h = 2L,
                                          encoder_structure = c(128L,64L,32L),
@@ -57,7 +60,9 @@ Mivae <- R6::R6Class("Mivae",
                                          decay=0.9,
                                          momentum=0.9,
                                          optimizer="Adam",
-                                         kld_weight=0.1) {
+                                         kld_weight=0.1,
+                                         loss_weight=0.5,
+                                         sigma_weight=1) {
 
                      tf <- tensorflow::tf
                      Out<-output_structure(data)
@@ -89,6 +94,8 @@ Mivae <- R6::R6Class("Mivae",
                      self$decay<-decay
                      self$momentum<-momentum
                      self$kld_weight<-kld_weight
+                     self$loss_weight<-loss_weight
+                     self$sigma_weight<-sigma_weight
                      self$learn_rate  <- learn_rate
                      self$iteration <- iteration
                      self$batch_size  <- batch_size
@@ -109,7 +116,7 @@ Mivae <- R6::R6Class("Mivae",
                        self$whole_networkOutput<-mivae_output(self$act,self$x, self$network_weights,feed_size=self$whole_size,self$n_h,encoder_structure=self$encoder_structure,decoder_structure=self$decoder_structure)
                        self$whole_op<-output_function(self$whole_networkOutput$x_reconstr_mean,self$output_split,self$output_struc)
                        #
-                       self$cost=mivae_optimizer(self$x,self$na_idx,self$networkOutput,self$output_split,self$output_struc,kld=TRUE,kld_weight=self$kld_weight)
+                       self$cost=mivae_optimizer(self$x,self$na_idx,self$networkOutput,self$output_split,self$output_struc,kld=TRUE,loss_weight=self$loss_weight,kld_weight=self$kld_weight,sigma_weight=self$sigma_weight)
                        if(optimizer=="Adam"){
                          self$optimizer = tf$train$AdamOptimizer(learning_rate=self$learn_rate,epsilon=self$epsilon)$minimize(self$cost)
                        }else if(optimizer=="AdamW"){
@@ -124,9 +131,15 @@ Mivae <- R6::R6Class("Mivae",
                      })
                    },
 
-                   train=function(print_freq=1){
+                   train=function(print_freq=1,bootstrap=FALSE){
                      tf <- tensorflow::tf
                      data=self$onehot.df
+                     if(bootstrap){
+                       Nrow=nrow(data)
+                       index=sample(Nrow,Nrow,replace=TRUE)
+                       self$bootstrap.df=data[index,]
+                       data=self$bootstrap.df
+                     }
                      #scale data and get colmin and colmax
                      scaled.obj=minmax_scaler(data)
                      scaled.mat<-scaled.obj$minmax.df
@@ -145,15 +158,22 @@ Mivae <- R6::R6Class("Mivae",
                            b<-batchset[[i]]
                            x<-self$x
                            na_idx<-self$na_idx
+
                            batch_train<-sess$run(list(self$cost,self$optimizer),feed_dict = dict(x=scaled.mat[b,],na_idx=notna_loc[b,]))
 
                            current_loss<-current_loss+batch_train[[1]]
                          }
                             current_loss<-current_loss/num_batch
+
+                            #self$saver$save(sess,"Temp/Mivae.ckpt")
+
                          if (k %% print_freq== 0){
                            cat("Iteration - ", k, "Current Loss - ", current_loss,"\n")
                            self$saver$save(sess,"Temp/Mivae.ckpt")
+
                          }
+
+
 
                        }
 
@@ -161,7 +181,7 @@ Mivae <- R6::R6Class("Mivae",
                      })
                    },
 
-                   impute=function(m=5,onehot=FALSE,all.numeric=FALSE,add.noise=FALSE,SD=1){
+                   impute=function(m=5,onehot=FALSE,all.numeric=FALSE,add.noise=FALSE,SD=1,pmm=TRUE,pmm.k=3){
                      tf <- tensorflow::tf
                      data=self$onehot.df
                      #scale data and get colmin and colmax
@@ -182,15 +202,31 @@ Mivae <- R6::R6Class("Mivae",
                        #self$whole_op<-output_function(self$whole_networkOutput$x_reconstr_mean)
                        imputed.data<-list()
                        onehot.data<-list()
-                       for(i in 1:m){
-                         output.list<-sess$run(self$whole_op, feed_dict = dict(x=scaled.mat))
-                         output.mat<-matrix(unlist(output.list),ncol=self$n_input)
-                         temp<-inv.minmax_data(output.mat,colmin,colmax)
-                         onehot.data[[i]]=as.matrix(data)
-                         onehot.data[[i]][!notna_loc]<-temp[!notna_loc]
-                         onehot.data[[i]]=as.matrix( onehot.data[[i]],ncol=self$n_input)
-                         colnames( onehot.data[[i]])=colnames(data)
+                       if(pmm){
+
+                         for(i in 1:m){
+                           output.list<-sess$run(self$whole_op, feed_dict = dict(x=scaled.mat))
+                           output.mat<-matrix(unlist(output.list),ncol=self$n_input)
+                           temp<-inv.minmax_data(output.mat,colmin,colmax)
+                           onehot.data[[i]]=temp
+                           onehot.data[[i]]=as.matrix(onehot.data[[i]],ncol=self$n_input)
+                           colnames( onehot.data[[i]])=colnames(data)
+                         }
+
+                       }else{
+                         for(i in 1:m){
+                           output.list<-sess$run(self$whole_op, feed_dict = dict(x=scaled.mat))
+                           output.mat<-matrix(unlist(output.list),ncol=self$n_input)
+                           temp<-inv.minmax_data(output.mat,colmin,colmax)
+                           onehot.data[[i]]=as.matrix(data)
+                           onehot.data[[i]][!notna_loc]<-temp[!notna_loc]
+                           onehot.data[[i]]=as.matrix(onehot.data[[i]],ncol=self$n_input)
+                           colnames(onehot.data[[i]])=colnames(data)
+                         }
                        }
+
+
+
                      })
 
                      if(add.noise){

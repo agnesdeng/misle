@@ -192,7 +192,36 @@ output_structure=function(data,columns_list=NULL,binary=NULL,multiclass=NULL,uns
   }
 
 
+#'Sort the dataset by increasing number of missing values
+#'@param data A data frame (with missing values NA's)
+#'@export
 
+sortNA<-function(data){
+  na.loc=is.na(data)
+  sorted.idx<-order(colSums(na.loc))
+  sorted.df<-data[sorted.idx]
+  return(list("sorted.df"=sorted.df,"sorted.idx"=sorted.idx))
+}
+
+
+#'Return the type of each variable in the dataset
+#'@export
+
+feature_type<-function(data){
+  type<-rep("numeric",ncol(data))
+  binary<-variable_class(data)$binary
+  multiclass<-variable_class(data)$multiclass
+  if(is.null(binary)==FALSE){
+    binary.index<-which(colnames(data) %in% binary)
+    type[binary.index]<-"binary"
+  }
+
+  if(is.null(multiclass)==FALSE){
+    multiclass.index<-which(colnames(data) %in% multiclass)
+    type[multiclass.index]<-"multiclass"
+  }
+  return(type)
+}
 
 
 

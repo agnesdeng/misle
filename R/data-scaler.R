@@ -38,7 +38,7 @@ minmax_data <- function(data){
 
 
 
-#'This function back-transform data
+#'This function back-transform data to an output as data matrix
 #'@export
 inv.minmax_data<-function(data,colmin,colmax){
   output<-sapply(seq(1, ncol(data), by=1),
