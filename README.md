@@ -36,10 +36,10 @@ library(tensorflow)
 
 - **multiple imputation by variational autoencoders**
 - **multiple imputation by denoising autoencoders(with dropout)**
-
+- **multiple imputation by XGboost**
 
 ## Expected to be done in 2020
-- **implement multiple imputation by XGboost**
+
 
 - **Simulation studies**
 
