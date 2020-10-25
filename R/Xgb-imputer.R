@@ -1,4 +1,4 @@
-#' Mixgb imputer object (testtestttttttest)
+#' Mixgb imputer object
 #'R6 class for Mixgb imputer
 #' @docType  class
 #' @format  An [R6Class] mivae imputer object
