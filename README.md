@@ -8,9 +8,11 @@ The R package `misle` is built using TensorFlow™, which enables fast numerical
 
 `misle` is still at the early stage of development so lots of work have to be done before it is officially released. 
 
-## Current version 
+## Current version
+
 - **multiple imputation by variational autoencoders**
 - **multiple imputation by denoising autoencoders(with dropout)**
+- **multiple imputation by XGboost**
 
 ## Install
 
@@ -32,11 +34,7 @@ Usually after these two steps, everything would be fine for Linux & Mac. If the 
 library(tensorflow)
 ```
 
-## Current version
 
-- **multiple imputation by variational autoencoders**
-- **multiple imputation by denoising autoencoders(with dropout)**
-- **multiple imputation by XGboost**
 
 ## Expected to be done in 2020
 
