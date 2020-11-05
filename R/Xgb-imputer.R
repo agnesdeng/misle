@@ -1,7 +1,7 @@
 #' Mixgb imputer object
 #'R6 class for Mixgb imputer
 #' @docType  class
-#' @format  An [R6Class] mivae imputer object
+#' @format  An [R6Class] mixgb imputer object
 #' @import xgboost
 #' @return [Mixgb]
 #' @export
@@ -22,8 +22,9 @@ Mixgb <- R6Class("Mixgb",
                     early_stopping_rounds=NULL,
                     pmm.k=NULL,
                     pmm.type=NULL,
+                    initial.imp=NULL,
 
-                    initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type=NULL,print_every_n = 10L,verbose=1) {
+                    initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type=NULL,initial.imp="random",print_every_n = 10L,verbose=1) {
                       self$data<-data
                       self$nrounds=nrounds
                       self$max_depth=max_depth
@@ -38,6 +39,7 @@ Mixgb <- R6Class("Mixgb",
                       self$early_stopping_rounds=early_stopping_rounds
                       self$pmm.k=pmm.k
                       self$pmm.type=pmm.type
+                      self$initial.imp=initial.imp
 
                     },
                     impute = function(data=self$data,m=5){
@@ -62,23 +64,43 @@ Mixgb <- R6Class("Mixgb",
                       #2)initial imputation
 
                       initial.df=sorted.df
+                      num.na=colSums(is.na(sorted.df))
 
                       for(i in 1:p){
-                        if(type[i]=="numeric"){
-                          #initial.df[is.na(sorted.df[,i]),i]<-median(sorted.df[,i],na.rm = T)
-                          var.mean=mean(sorted.df[,i],na.rm = T)
-                          var.sd=sd(sorted.df[,i],na.rm = T)
-                          index=which(is.na(sorted.df[,i]))
-                          NA.num=length(index)
-                          if(Names[i]=="Transferin"){
-                            initial.df[index,i]<-100*initial.df[index,"Serum.Iron"]/initial.df[index,"TIBC"]
+
+                        if(self$initial.imp=="random"){
+
+                            index=which(!is.na(sorted.df[,i]))
+                            initial.df[is.na(sorted.df[,i]),i]<-sample(sorted.df[,i][index],num.na[i],replace=TRUE)
+
+
+                        }else if(self$initial.imp=="rnorm"){
+
+                          if(type[i]=="numeric"){
+                            var.mean=mean(sorted.df[,i],na.rm = T)
+                            var.sd=sd(sorted.df[,i],na.rm = T)
+                            index=which(is.na(sorted.df[,i]))
+                            initial.df[index,i]<-rnorm(num.na[i],var.mean,var.sd)
                           }else{
-                            initial.df[index,i]<-rnorm(NA.num,var.mean,var.sd)
+                            index=which(!is.na(sorted.df[,i]))
+                            initial.df[is.na(sorted.df[,i]),i]<-sample(sorted.df[,i][index],num.na[i],replace=TRUE)
                           }
 
-                        }else{
-                          initial.df[is.na(sorted.df[,i]),i]<-names(which.max(table(initial.df[,i])))
+
+
+                          }else{
+
+
+                          #numeric: initial impute median
+                          if(type[i]=="numeric"){
+                            initial.df[is.na(sorted.df[,i]),i]<-median(sorted.df[,i],na.rm = T)
+                          }else{
+                            #factor:  initial impute major class
+                            initial.df[is.na(sorted.df[,i]),i]<-names(which.max(table(initial.df[,i])))
+                          }
                         }
+
+
                       }
 
                       #3) imputation  i=2
@@ -207,15 +229,23 @@ Mixgb <- R6Class("Mixgb",
                        ###no pmm
                          imputed.data<-list()
 
+
                          for(k in 1:m){
-
-
+                          #sorted.df :  sorted dataset with increasing %NA , containing NA
+                          #initial.df:  sorted.df with initial NA imputed
+                          #Boot.data:  bootstrap sample of sorted.df,  containing NAs
+                           #Boot.initial: bootstrap sample of initial.df,  with NA being imputed with Mean/Median etc
                            index=sample(Nrow,Nrow,replace=TRUE)
                            Boot.data=sorted.df[index,]
-                           Boot.initial=initial.df[index,]
-                           copy=sorted.df
+                           #Boot.initial
+                           copy=initial.df
+
+
+
 
                            for(i in 1:p){
+                             Boot.initial=copy[index,]
+                             #####
                              Bna.index=which(is.na(Boot.data[,i]))
                              na.index=which(is.na(sorted.df[,i]))
 
@@ -229,10 +259,10 @@ Mixgb <- R6Class("Mixgb",
 
                                if(p==2){
                                  obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=Boot.initial[-Bna.index,])
-                                 mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=initial.df[na.index,])
+                                 mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=copy[na.index,])
                                }else{
                                  obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=Boot.initial[-Bna.index,])[,-1]
-                                 mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=initial.df[na.index,])[,-1]
+                                 mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=copy[na.index,])[,-1]
                                }
 
                                if(type[i]=="numeric"){
@@ -459,10 +489,12 @@ Mixgb <- R6Class("Mixgb",
 
                            index=sample(Nrow,Nrow,replace=TRUE)
                            Boot.data=sorted.df[index,]
-                           Boot.initial=initial.df[index,]
-                           copy=sorted.df
+
+                           copy=initial.df
 
                            for(i in 1:p){
+                             Boot.initial=copy[index,]
+
                              Bna.index=which(is.na(Boot.data[,i]))
                              na.index=which(is.na(sorted.df[,i]))
 
@@ -477,11 +509,11 @@ Mixgb <- R6Class("Mixgb",
                                if(p==2){
                                  obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=Boot.initial[-Bna.index,])
                                  Obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=initial.df[-na.index,])
-                                 mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=initial.df[na.index,])
+                                 mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=copy[na.index,])
                                }else{
                                  obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=Boot.initial[-Bna.index,])[,-1]
                                  Obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=initial.df[-na.index,])[,-1]
-                                 mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=initial.df[na.index,])[,-1]
+                                 mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=copy[na.index,])[,-1]
                                }
 
                                if(type[i]=="numeric"){
