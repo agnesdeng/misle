@@ -36,7 +36,7 @@ library(tensorflow)
 
 
 
-## Expected to be done in 2020
+## Expected to be done in 2020-2021
 
 
 - **Simulation studies**
