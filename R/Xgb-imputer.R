@@ -43,7 +43,7 @@ Mixgb <- R6Class("Mixgb",
 
                     },
                     impute = function(data=self$data,m=5){
-                      #pmm function
+                      #pmm function match the imputed value wit model observed values, then extra the original value yobs
                       pmm<- function(yhatobs, yhatmis, yobs,k=self$pmm.k){
                         idx=.Call('_mice_matcher', PACKAGE = 'mice', yhatobs, yhatmis, k)
                         yobs[idx]
@@ -141,7 +141,8 @@ Mixgb <- R6Class("Mixgb",
                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                 xgb.pred = predict(xgb.fit,mis.data)
-                                pred.y=levels(sorted.df[,i])[xgb.pred+1]
+                                pred.y=ifelse(xgb.pred>=0.5,1,0)
+                                pred.y=levels(sorted.df[,i])[pred.y+1]
                                 #update dataset
                                 sorted.df[,i][na.index]<-pred.y
 
@@ -164,7 +165,9 @@ Mixgb <- R6Class("Mixgb",
 
 
                         }else{
-                              #single imputation with pmm
+                              #single imputation with pmm (if pmm.type is not null)
+                          yhatobs.list<-list()
+                          yobs.list<-list()
                           for(i in 1:p){
                             na.index=which(is.na(sorted.df[,i]))
                             if(length(na.index)>0){
@@ -198,9 +201,12 @@ Mixgb <- R6Class("Mixgb",
                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                 xgb.pred = predict(xgb.fit,mis.data)
-                                pred.y=levels(sorted.df[,i])[xgb.pred+1]
+                                yhatobs=predict(xgb.fit,obs.data)
                                 #update dataset
-                                sorted.df[,i][na.index]<-pred.y
+                                num.result<- pmm(yhatobs = yhatobs,yhatmis = xgb.pred,yobs=obs.y,k=self$pmm.k)
+                                sorted.df[,i][na.index]<- levels(sorted.df[,i])[num.result+1]
+
+
 
                               }else{
                                 obj.type= "multi:softmax"
@@ -282,7 +288,9 @@ Mixgb <- R6Class("Mixgb",
                                                  min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                  xgb.pred = predict(xgb.fit,mis.data)
-                                 pred.y=levels(sorted.df[,i])[xgb.pred+1]
+                                 pred.y=ifelse(xgb.pred>=0.5,1,0)
+                                 pred.y=levels(sorted.df[,i])[pred.y+1]
+
                                  #update dataset
                                  copy[,i][na.index]<-pred.y
 
