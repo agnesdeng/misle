@@ -4,8 +4,15 @@
 \alias{mivae_output}
 \title{Mivae output evaluation}
 \usage{
-mivae_output(act, x, network_weights, feed_size, n_h, encoder_structure,
-  decoder_structure)
+mivae_output(
+  act,
+  x,
+  network_weights,
+  feed_size,
+  n_h,
+  encoder_structure,
+  decoder_structure
+)
 }
 \description{
 Mivae output evaluation

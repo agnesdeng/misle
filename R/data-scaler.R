@@ -1,5 +1,6 @@
 
 #'scale a vector using minmax
+#'@param x a vector
 #'@export
 minmax <- function(x){
   (x-min(x))/(max(x)-min(x))
@@ -7,6 +8,7 @@ minmax <- function(x){
 
 
 #'scale a dataset and return a scaled dataframe, the colmin and colmax of each column
+#'@param data A data frame
 #'@export
 minmax_scaler=function(data){
   pre=dplyr::mutate_all(data,~ifelse(is.na(.),median(.,na.rm=TRUE),.))
@@ -24,6 +26,7 @@ minmax_scaler=function(data){
 
 
 #'mimax data function
+#'@param data A data frame
 #'@export
 minmax_data <- function(data){
   colmin=apply(data,2,min)
@@ -39,6 +42,9 @@ minmax_data <- function(data){
 
 
 #'This function back-transform data to an output as data matrix
+#'@param data A data frame
+#'@param colmin A vector that contains the minimum of each column
+#'@param colmax A vector that contains the maximum of each column
 #'@export
 inv.minmax_data<-function(data,colmin,colmax){
   output<-sapply(seq(1, ncol(data), by=1),

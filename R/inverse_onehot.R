@@ -1,7 +1,5 @@
 
-#'inverse onehot function
-
-
+#inverse onehot function
 inverse_onehot=function(onehot.mat,data,columns_list=NULL){
   np<-tensorflow::import("numpy")
   #data: original data

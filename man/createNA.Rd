@@ -6,6 +6,13 @@
 \usage{
 createNA(data, p = 0.1, seed = 2019)
 }
+\arguments{
+\item{data}{a dataframe}
+
+\item{p}{the proportion of missing values in the dataframe}
+
+\item{seed}{random seed, a singlue value}
+}
 \description{
 Create missing value for a dataset
 }

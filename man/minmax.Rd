@@ -6,6 +6,9 @@
 \usage{
 minmax(x)
 }
+\arguments{
+\item{x}{a vector}
+}
 \description{
 scale a vector using minmax
 }

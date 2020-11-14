@@ -4,8 +4,15 @@
 \alias{denoise_encoder}
 \title{Midae Encoder update function}
 \usage{
-denoise_encoder(act, x, weights, biases, input_keep, hidden_keep,
-  encoder_structure)
+denoise_encoder(
+  act,
+  x,
+  weights,
+  biases,
+  input_keep,
+  hidden_keep,
+  encoder_structure
+)
 }
 \description{
 Midae Encoder update function

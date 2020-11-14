@@ -4,8 +4,14 @@
 \alias{output_structure}
 \title{This function is use to identify the structure of input}
 \usage{
-output_structure(data, columns_list = NULL, binary = NULL,
-  multiclass = NULL, unsorted = TRUE, verbose = FALSE)
+output_structure(
+  data,
+  columns_list = NULL,
+  binary = NULL,
+  multiclass = NULL,
+  unsorted = TRUE,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{data}{A data frame (not one hot yet)}

@@ -1,6 +1,7 @@
 
 
 #'This function is used to detect the type(numeric,binary,multiclass) of each feature
+#' @param  data A data frame
 #' @export
 variable_class<-function(data){
   binary<-NULL
@@ -21,6 +22,10 @@ variable_class<-function(data){
 
 #'This function is used to convert dataframe into onehot dataframe
 #'It also returns \code{column_list}, each list component contains classes of one non-numeric feature
+#'@param data a data frame
+#'@param autolabel logical; if TRUE the class of variables would be automatically found and users are not required to provide the names of \code{binary} and \code{multiclass}
+#'@param binary A vector contains names of binary features
+#'@param multiclass A vector contains names of multiclass features
 #'@export
 onehot<-function(data,autolabel=TRUE,binary=NULL,multiclass=NULL){
   if(autolabel==TRUE){
@@ -205,6 +210,7 @@ sortNA<-function(data){
 
 
 #'Return the type of each variable in the dataset
+#'@param data A data frame
 #'@export
 
 feature_type<-function(data){

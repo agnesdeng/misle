@@ -6,6 +6,9 @@
 \usage{
 variable_class(data)
 }
+\arguments{
+\item{data}{A data frame}
+}
 \description{
 This function is used to detect the type(numeric,binary,multiclass) of each feature
 }

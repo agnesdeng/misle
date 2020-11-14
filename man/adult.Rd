@@ -4,7 +4,8 @@
 \name{adult}
 \alias{adult}
 \title{Adult dataset}
-\format{A data frame of 48842 rows and 15 columns
+\format{
+A data frame of 48842 rows and 15 columns
 \describe{
  \item{age}{Numeric values}
  \item{workclass}{A factor with 8 levels}
@@ -21,7 +22,8 @@
  \item{hours_per_week}{}
  \item{native_country}{}
  \item{class_labels}{}
-}}
+}
+}
 \source{
 ... data
 }

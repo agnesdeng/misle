@@ -5,9 +5,8 @@
 \alias{Midae}
 \title{Midae imputer object
 R6 class for Midae imputer}
-\format{An [R6Class] midae imputer object}
-\usage{
-Midae
+\format{
+An [R6Class] midae imputer object
 }
 \value{
 [Midae]
@@ -15,5 +14,85 @@ Midae
 \description{
 Midae imputer object
 R6 class for Midae imputer
+
+Midae imputer object
+R6 class for Midae imputer
 }
-\keyword{datasets}
+\section{Methods}{
+\subsection{Public methods}{
+\itemize{
+\item \href{#method-new}{\code{Midae$new()}}
+\item \href{#method-train}{\code{Midae$train()}}
+\item \href{#method-impute}{\code{Midae$impute()}}
+\item \href{#method-clone}{\code{Midae$clone()}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-new"></a>}}
+\if{latex}{\out{\hypertarget{method-new}{}}}
+\subsection{Method \code{new()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Midae$new(
+  data,
+  n_h = 2L,
+  encoder_structure = c(128L, 64L, 32L),
+  decoder_structure = "reversed",
+  learn_rate = 1e-04,
+  iteration = 400,
+  batch_size = 500,
+  input_keep = 0.8,
+  hidden_keep = 1,
+  act = tf$nn$softplus,
+  weight_decay = "default",
+  epsilon = 1e-07,
+  rho = 0.95,
+  decay = 0.9,
+  momentum = 0.9,
+  optimizer = "Adam"
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-train"></a>}}
+\if{latex}{\out{\hypertarget{method-train}{}}}
+\subsection{Method \code{train()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Midae$train(print_freq = 1, bootstrap = FALSE)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-impute"></a>}}
+\if{latex}{\out{\hypertarget{method-impute}{}}}
+\subsection{Method \code{impute()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Midae$impute(
+  m = 5,
+  onehot = FALSE,
+  all.numeric = FALSE,
+  add.noise = FALSE,
+  SD = 1,
+  pmm = TRUE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-clone"></a>}}
+\if{latex}{\out{\hypertarget{method-clone}{}}}
+\subsection{Method \code{clone()}}{
+The objects of this class are cloneable with this method.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Midae$clone(deep = FALSE)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{deep}}{Whether to make a deep clone.}
+}
+\if{html}{\out{</div>}}
+}
+}
+}

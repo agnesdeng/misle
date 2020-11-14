@@ -4,9 +4,14 @@
 \alias{install_misle}
 \title{Install the TensorFlow backend (modified code from Keras)}
 \usage{
-install_misle(method = c("auto", "virtualenv", "conda"),
-  conda = "auto", version = "default", tensorflow = "default",
-  extra_packages = c("tensorflow-hub"), ...)
+install_misle(
+  method = c("auto", "virtualenv", "conda"),
+  conda = "auto",
+  version = "default",
+  tensorflow = "default",
+  extra_packages = c("tensorflow-hub"),
+  ...
+)
 }
 \arguments{
 \item{method}{Installation method ("virtualenv" or "conda")}
@@ -14,9 +19,11 @@ install_misle(method = c("auto", "virtualenv", "conda"),
 \item{conda}{Path to conda executable (or "auto" to find conda using the
 PATH and other conventional install locations).}
 
-\item{version}{TensorFlow version to install. Specify "default" to install
-the CPU version of the latest release. Specify "gpu" to install the GPU
-version of the latest release.
+\item{version}{TensorFlow version to install. Up to and including TensorFlow 2.0,
+specify "default" to install the CPU version of the latest release;
+specify "gpu" to install the GPU version of the latest release.
+Starting from TensorFlow 2.1, by default a version is installed that works
+on both GPU- and CPU-only systems. Specify "cpu" to install a CPU-only version.
 
 You can also provide a full major.minor.patch specification (e.g. "1.1.0"),
 appending "-gpu" if you want the GPU version (e.g. "1.1.0-gpu").

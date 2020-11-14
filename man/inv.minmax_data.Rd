@@ -6,6 +6,13 @@
 \usage{
 inv.minmax_data(data, colmin, colmax)
 }
+\arguments{
+\item{data}{A data frame}
+
+\item{colmin}{A vector that contains the minimum of each column}
+
+\item{colmax}{A vector that contains the maximum of each column}
+}
 \description{
 This function back-transform data to an output as data matrix
 }

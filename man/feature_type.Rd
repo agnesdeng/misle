@@ -6,6 +6,9 @@
 \usage{
 feature_type(data)
 }
+\arguments{
+\item{data}{A data frame}
+}
 \description{
 Return the type of each variable in the dataset
 }

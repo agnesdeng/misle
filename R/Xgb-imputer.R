@@ -1,28 +1,65 @@
-#' Mixgb imputer object
-#'R6 class for Mixgb imputer
+#' Multiple imputation through xgboost R6 class imputer object
 #' @docType  class
 #' @format  An [R6Class] mixgb imputer object
 #' @import xgboost
-#' @return [Mixgb]
+# @return [Mixgb]
 #' @export
 
 Mixgb <- R6Class("Mixgb",
-                  public = list(
-                    data=NULL,
-                    nrounds=NULL,
-                    max_depth=NULL,
-                    gamma=NULL,
-                    eta=NULL,
-                    colsample_bytree=NULL,
-                    min_child_weight=NULL,
-                    subsample=NULL,
-                    print_every_n=NULL,
-                    verbose=NULL,
-                    nthread=NULL,
-                    early_stopping_rounds=NULL,
-                    pmm.k=NULL,
-                    pmm.type=NULL,
-                    initial.imp=NULL,
+                   cloneable = FALSE,
+
+                    public = list(
+                      #'@field data A data frame with missing values
+                      #'@field nrounds max number of boosting iterations. Default: 50
+                      #'@field max_depth maximum depth of the tree. Default: 6
+                      #'@field gamma Default: 0.1
+                      #'@field eta Default: 0.3
+                      #'@field nthread Default: 4
+                      #'@field early_stopping_rounds Default: 10,
+                      #'@field colsample_bytree Default: 1
+                      #'@field min_child_weight Default: 1
+                      #'@field subsample Default: 1
+                      #'@field pmm.k Default: 5
+                      #'@field pmm.type Default: NULL
+                      #'@field initial.imp Default: "random"
+                      #'@field print_every_n Default: 10L
+                      #'@field verbose Default: 1
+
+                      data=NULL,
+                      nrounds=NULL,
+                      max_depth=NULL,
+                      gamma=NULL,
+                      eta=NULL,
+                      colsample_bytree=NULL,
+                      min_child_weight=NULL,
+                      subsample=NULL,
+                      print_every_n=NULL,
+                      verbose=NULL,
+                      nthread=NULL,
+                      early_stopping_rounds=NULL,
+                      pmm.k=NULL,
+                      pmm.type=NULL,
+                      initial.imp=NULL,
+                    #'@description Create a new \code{Mixgb} object. This is used to set up the multiple imputation imputer using xgboost.
+                    #'@examples
+                    #'MIXGB=Mixgb$new(withNA.df)
+                    #'MIXGB=Mixgb$new(withNA.df,nrounds=50,max_depth=6)
+                    #'@param data A data frame with missing values
+                    #'@param nrounds max number of boosting iterations. Default: 50
+                    #'@param max_depth maximum depth of the tree. Default: 6
+                    #'@param gamma Default: 0.1
+                    #'@param eta Default: 0.3
+                    #'@param nthread Default: 4
+                    #'@param early_stopping_rounds Default: 10,
+                    #'@param colsample_bytree Default: 1
+                    #'@param min_child_weight Default: 1
+                    #'@param subsample Default: 1
+                    #'@param pmm.k Default: 5
+                    #'@param pmm.type Default: NULL
+                    #'@param initial.imp Default: "random"
+                    #'@param print_every_n Default: 10L
+                    #'@param verbose Default: 1
+
 
                     initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type=NULL,initial.imp="random",print_every_n = 10L,verbose=1) {
                       self$data<-data
@@ -42,7 +79,15 @@ Mixgb <- R6Class("Mixgb",
                       self$initial.imp=initial.imp
 
                     },
-                    impute = function(data=self$data,m=5){
+
+                    #'@description Use the imputer to impute missing values and obtain multiple datasets
+                    #'@examples
+                    #'MIXGB=Mixgb$new(withNA.df)
+                    #'imputation.list=MIXGB$impute(m = 5)
+                    #'@param m the number of imputed datasets. Default: 5
+
+                    impute = function(m=5){
+                      data=self$data
                       #pmm function match the imputed value wit model observed values, then extra the original value yobs
                       pmm<- function(yhatobs, yhatmis, yobs,k=self$pmm.k){
                         idx=.Call('_mice_matcher', PACKAGE = 'mice', yhatobs, yhatmis, k)
@@ -126,7 +171,7 @@ Mixgb <- R6Class("Mixgb",
                               }
 
                               if(type[i]=="numeric"){
-                                obj.type<-"reg:linear"
+                                obj.type<-"reg:squarederror"
                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
@@ -185,7 +230,7 @@ Mixgb <- R6Class("Mixgb",
                               }
 
                               if(type[i]=="numeric"){
-                                obj.type<-"reg:linear"
+                                obj.type<-"reg:squarederror"
                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
@@ -205,7 +250,6 @@ Mixgb <- R6Class("Mixgb",
                                 #update dataset
                                 num.result<- pmm(yhatobs = yhatobs,yhatmis = xgb.pred,yobs=obs.y,k=self$pmm.k)
                                 sorted.df[,i][na.index]<- levels(sorted.df[,i])[num.result+1]
-
 
 
                               }else{
@@ -272,7 +316,7 @@ Mixgb <- R6Class("Mixgb",
                                }
 
                                if(type[i]=="numeric"){
-                                 obj.type<-"reg:linear"
+                                 obj.type<-"reg:squarederror"
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                  min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
@@ -344,7 +388,7 @@ Mixgb <- R6Class("Mixgb",
                              }
 
                              if(type[i]=="numeric"){
-                               obj.type<-"reg:linear"
+                               obj.type<-"reg:squarederror"
                                xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
@@ -414,7 +458,7 @@ Mixgb <- R6Class("Mixgb",
                                }
 
                                if(type[i]=="numeric"){
-                                 obj.type<-"reg:linear"
+                                 obj.type<-"reg:squarederror"
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                  min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
@@ -525,7 +569,7 @@ Mixgb <- R6Class("Mixgb",
                                }
 
                                if(type[i]=="numeric"){
-                                 obj.type<-"reg:linear"
+                                 obj.type<-"reg:squarederror"
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                  min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)

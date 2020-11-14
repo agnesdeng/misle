@@ -6,6 +6,9 @@
 \usage{
 minmax_scaler(data)
 }
+\arguments{
+\item{data}{A data frame}
+}
 \description{
 scale a dataset and return a scaled dataframe, the colmin and colmax of each column
 }

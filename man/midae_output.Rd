@@ -4,8 +4,15 @@
 \alias{midae_output}
 \title{Midae output evaluation}
 \usage{
-midae_output(act, x, network_weights, encoder_structure, decoder_structure,
-  input_keep, hidden_keep)
+midae_output(
+  act,
+  x,
+  network_weights,
+  encoder_structure,
+  decoder_structure,
+  input_keep,
+  hidden_keep
+)
 }
 \description{
 Midae output evaluation

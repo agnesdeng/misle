@@ -7,6 +7,15 @@ It also returns \code{column_list}, each list component contains classes of one 
 \usage{
 onehot(data, autolabel = TRUE, binary = NULL, multiclass = NULL)
 }
+\arguments{
+\item{data}{a data frame}
+
+\item{autolabel}{logical; if TRUE the class of variables would be automatically found and users are not required to provide the names of \code{binary} and \code{multiclass}}
+
+\item{binary}{A vector contains names of binary features}
+
+\item{multiclass}{A vector contains names of multiclass features}
+}
 \description{
 This function is used to convert dataframe into onehot dataframe
 It also returns \code{column_list}, each list component contains classes of one non-numeric feature

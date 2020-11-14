@@ -1,5 +1,5 @@
 
-#' mivae cost function
+#mivae cost function
 mivae_optimizer<-function(x, na_idx,networkOutput,output_split,output_struc,kld=TRUE,loss_weight=1,kld_weight=1,sigma_weight=1){
   tf <- tensorflow::tf
   na_split=tf$split(na_idx,output_split,axis= as.integer(1))
@@ -140,7 +140,7 @@ midae_optimizer<-function(x,na_idx,networkOutput,output_split,output_struc){
 }
 
 
-#' output function
+# output function
 output_function<-function(reconstr_output,output_split,output_struc){
   tf <- tensorflow::tf
   out_split=tf$split(reconstr_output,output_split,axis=as.integer(1))

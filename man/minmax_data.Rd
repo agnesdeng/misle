@@ -6,6 +6,9 @@
 \usage{
 minmax_data(data)
 }
+\arguments{
+\item{data}{A data frame}
+}
 \description{
 mimax data function
 }

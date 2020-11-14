@@ -1,4 +1,4 @@
-#'utility functions
+#utility functions
 
 
 is_windows <- function() {

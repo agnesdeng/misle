@@ -1,4 +1,7 @@
 #' Create missing value for a dataset
+#' @param data a dataframe
+#' @param p the proportion of missing values in the dataframe
+#' @param seed random seed, a singlue value
 #' @export
 createNA <- function(data,p=0.1,seed=2019){
   Nrow=nrow(data)
