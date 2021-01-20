@@ -90,7 +90,8 @@ Mixgb <- R6Class("Mixgb",
                       data=self$data
                       #pmm function match the imputed value wit model observed values, then extra the original value yobs
                       pmm<- function(yhatobs, yhatmis, yobs,k=self$pmm.k){
-                        idx=.Call('_mice_matcher', PACKAGE = 'mice', yhatobs, yhatmis, k)
+                        #idx=.Call('_mice_matcher', PACKAGE = 'mice', yhatobs, yhatmis, k)
+                        idx=.Call('matchindex', PACKAGE = 'mice', yhatobs, yhatmis, k)
                         yobs[idx]
                       }
 
