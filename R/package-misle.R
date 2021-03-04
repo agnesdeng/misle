@@ -12,4 +12,6 @@
 #' @importFrom R6  R6Class
 #' @importFrom dplyr mutate_all
 #' @importFrom sjmisc to_dummy
+#' @importFrom Rfast knn
+#' @importFrom mice matchindex
 "_PACKAGE"

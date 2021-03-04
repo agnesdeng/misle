@@ -6,6 +6,7 @@
 createNA <- function(data,names=NULL,p=0.3,seed=NULL){
   Nrow=nrow(data)
   Ncol=ncol(data)
+
   if(!is.null(seed)){
     set.seed(seed)
   }

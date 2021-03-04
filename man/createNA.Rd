@@ -4,7 +4,7 @@
 \alias{createNA}
 \title{Create missing value for a dataset}
 \usage{
-createNA(data, p = 0.1, seed = 2019)
+createNA(data, names = NULL, p = 0.3, seed = NULL)
 }
 \arguments{
 \item{data}{a dataframe}

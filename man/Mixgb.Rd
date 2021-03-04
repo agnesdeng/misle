@@ -55,6 +55,8 @@ imputation.list=MIXGB$impute(m = 5)
 
 \item{\code{pmm.type}}{Default: NULL}
 
+\item{\code{pmm.link}}{match on predictive mean of "logit" or "prob".Default: "logit"}
+
 \item{\code{initial.imp}}{Default: "random"}
 
 \item{\code{print_every_n}}{Default: 10L}
@@ -89,6 +91,7 @@ Create a new \code{Mixgb} object. This is used to set up the multiple imputation
   subsample = 1,
   pmm.k = 5,
   pmm.type = NULL,
+  pmm.link = "logit",
   initial.imp = "random",
   print_every_n = 10L,
   verbose = 1
@@ -121,6 +124,8 @@ Create a new \code{Mixgb} object. This is used to set up the multiple imputation
 \item{\code{pmm.k}}{Default: 5}
 
 \item{\code{pmm.type}}{Default: NULL}
+
+\item{\code{pmm.link}}{Default: "logit"}
 
 \item{\code{initial.imp}}{Default: "random"}
 

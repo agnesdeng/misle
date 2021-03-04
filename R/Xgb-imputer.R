@@ -21,6 +21,7 @@ Mixgb <- R6Class("Mixgb",
                       #'@field subsample Default: 1
                       #'@field pmm.k Default: 5
                       #'@field pmm.type Default: NULL
+                      #'@field pmm.link match on predictive mean of "logit" or "prob".Default: "logit"
                       #'@field initial.imp Default: "random"
                       #'@field print_every_n Default: 10L
                       #'@field verbose Default: 1
@@ -39,6 +40,7 @@ Mixgb <- R6Class("Mixgb",
                       early_stopping_rounds=NULL,
                       pmm.k=NULL,
                       pmm.type=NULL,
+                      pmm.link=NULL,
                       initial.imp=NULL,
                     #'@description Create a new \code{Mixgb} object. This is used to set up the multiple imputation imputer using xgboost.
                     #'@examples
@@ -56,12 +58,13 @@ Mixgb <- R6Class("Mixgb",
                     #'@param subsample Default: 1
                     #'@param pmm.k Default: 5
                     #'@param pmm.type Default: NULL
+                    #'@param pmm.link Default: "logit"
                     #'@param initial.imp Default: "random"
                     #'@param print_every_n Default: 10L
                     #'@param verbose Default: 1
 
 
-                    initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type=NULL,initial.imp="random",print_every_n = 10L,verbose=1) {
+                    initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type=NULL,pmm.link="logit",initial.imp="random",print_every_n = 10L,verbose=1) {
                       self$data<-data
                       self$nrounds=nrounds
                       self$max_depth=max_depth
@@ -76,6 +79,7 @@ Mixgb <- R6Class("Mixgb",
                       self$early_stopping_rounds=early_stopping_rounds
                       self$pmm.k=pmm.k
                       self$pmm.type=pmm.type
+                      self$pmm.link=pmm.link
                       self$initial.imp=initial.imp
 
                     },
@@ -91,9 +95,20 @@ Mixgb <- R6Class("Mixgb",
                       #pmm function match the imputed value wit model observed values, then extra the original value yobs
                       pmm<- function(yhatobs, yhatmis, yobs,k=self$pmm.k){
                         #idx=.Call('_mice_matcher', PACKAGE = 'mice', yhatobs, yhatmis, k)
-                        #idx=.Call('matchindex', PACKAGE = 'mice', yhatobs, yhatmis, k)
+
                         idx=mice::matchindex(d=yhatobs,t=yhatmis,k=k)
                         yobs[idx]
+                      }
+
+                      pmm.multiclass<-function(donor.pred,target.pred,donor.obs,k=self$pmm.k){
+                        #shuffle donors to break ties
+                        donor.size=length(donor.obs)
+                        idx=sample(donor.size,replace=F)
+                        donor.randompred=donor.pred[idx,]
+                        donor.randomobs=donor.obs[idx]
+                        #matching
+                        match.class=Rfast::knn(xnew=target.pred,y=donor.randomobs,x=donor.randompred,k=k)
+                        as.vector(match.class)
                       }
 
                       #data=withNA.df
@@ -182,7 +197,7 @@ Mixgb <- R6Class("Mixgb",
                                 sorted.df[,i][na.index]<-pred.y
 
                               }else if(type[i]=="binary"){
-                                obj.type<-"reg:logistic"
+                                obj.type<-"binary:logistic"
                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
@@ -242,7 +257,7 @@ Mixgb <- R6Class("Mixgb",
                                 sorted.df[,i][na.index]<- pmm(yhatobs = yhatobs,yhatmis = pred.y,yobs=obs.y,k=self$pmm.k)
 
                               }else if(type[i]=="binary"){
-                                obj.type<-"reg:logistic"
+                                obj.type<-"binary:logistic"
                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
@@ -328,7 +343,7 @@ Mixgb <- R6Class("Mixgb",
 
 
                                }else if(type[i]=="binary"){
-                                 obj.type<-"reg:logistic"
+                                 obj.type<-"binary:logistic"
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                  min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
@@ -400,26 +415,34 @@ Mixgb <- R6Class("Mixgb",
                                yhatobs.list[[i]]=yhatobs
 
                              }else if(type[i]=="binary"){
-                               obj.type<-"reg:logistic"
-                               xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
-                                               nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                               min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
 
+                                if(self$pmm.link=="logit"){
+                                 obj.type<-"binary:logitraw"
+                               }else{
+                                 #pmm by "prob"
+                                 obj.type<-"binary:logistic"
+                               }
+
+                               xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=nthread,early_stopping_rounds=early_stopping_rounds,
+                                               nrounds=nrounds, max_depth=max_depth,gamma=gamma,eta=eta,colsample_bytree=colsample_bytree,
+                                               min_child_weight=min_child_weight,subsample=subsample,verbose = verbose, print_every_n = print_every_n)
                                xgb.pred = predict(xgb.fit,obs.data)
-                               #yhatobs=levels(sorted.df[,i])[xgb.pred+1]
-                               #update dataset
                                yhatobs.list[[i]]=xgb.pred
 
                              }else{
-                               obj.type= "multi:softmax"
+                               obj.type= "multi:softprob"
                                N.class=length(levels(sorted.df[,i]))
                                xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, num_class=N.class,missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
-                               xgb.pred = predict(xgb.fit,obs.data)
-                               #yhatobs=levels(sorted.df[,i])[xgb.pred+1]
-                               #update dataset
+                               xgb.pred = predict(xgb.fit,obs.data,reshape = T)
+
+                               if(self$pmm.link=="logit"){
+                                 xgb.pred<-log(xgb.pred/(1-xgb.pred))
+                               }
+
                                yhatobs.list[[i]]=xgb.pred
+
                              }
                            }
 
@@ -474,39 +497,41 @@ Mixgb <- R6Class("Mixgb",
 
 
                                }else if(type[i]=="binary"){
-                                 obj.type<-"reg:logistic"
+
+                                 if(self$pmm.link=="logit"){
+                                   obj.type<-"binary:logitraw"
+                                 }else{
+                                   #otherwise pmm by "prob"
+                                   obj.type<-"binary:logistic"
+                                 }
+
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                  min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                  xgb.pred = predict(xgb.fit,mis.data)
-                                 #pred.y=levels(sorted.df[,i])[xgb.pred+1]
-                                 #update dataset
-                                 #copy[,i][na.index]<- pmm(yhatobs = yhatobs.list[[i]],yhatmis = pred.y,yobs=yobs.list[[i]],k=self$pmm.k)
-
-                                 #copy[,i][na.index]<-pred.y
 
                                  num.result=pmm(yhatobs = yhatobs.list[[i]],yhatmis = xgb.pred,yobs=yobs.list[[i]],k=self$pmm.k)
                                  #change to factor
                                  copy[,i][na.index]<- levels(sorted.df[,i])[num.result+1]
 
                                }else{
-                                 obj.type= "multi:softmax"
+                                 obj.type= "multi:softprob"
                                  N.class=length(levels(sorted.df[,i]))
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, num_class=N.class,missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                  min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
-                                 xgb.pred = predict(xgb.fit,mis.data)
-                                 #pred.y=levels(sorted.df[,i])[xgb.pred+1]
-                                 #update dataset
-                                 #copy[,i][na.index]<- pmm(yhatobs = yhatobs.list[[i]],yhatmis = pred.y,yobs=yobs.list[[i]],k=self$pmm.k)
+                                 xgb.pred= predict(xgb.fit,mis.data,reshape = T)
 
-                                 num.result=pmm(yhatobs = yhatobs.list[[i]],yhatmis = xgb.pred,yobs=yobs.list[[i]],k=self$pmm.k)
+                                 if(self$pmm.link=="logit"){
+                                   xgb.pred=log(xgb.pred/(1-xgb.pred))
+                                 }
+
+                                 num.result=pmm.multiclass(donor.pred = yhatobs.list[[i]],target.pred = xgb.pred,donor.obs = yobs.list[[i]],k=self$pmm.k)
                                  #change to factor
                                  copy[,i][na.index]<- levels(sorted.df[,i])[num.result+1]
 
-                                 ##3
-                                 #copy[,i][na.index]<-pred.y
+
                                }
 
                              }
@@ -585,41 +610,48 @@ Mixgb <- R6Class("Mixgb",
 
 
                                }else if(type[i]=="binary"){
-                                 obj.type<-"reg:logistic"
+
+                                 if(self$pmm.link=="logit"){
+                                   obj.type<-"binary:logitraw"
+                                 }else{
+                                   #otherwise pmm by "prob"
+                                   obj.type<-"binary:logistic"
+                                 }
+
+
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                  min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                  xgb.pred = predict(xgb.fit,mis.data)
-                                 #pred.y=levels(sorted.df[,i])[xgb.pred+1]
+
 
                                  yhatObs=predict(xgb.fit,Obs.data)
-                                 #yhatobs2=levels(sorted.df[,i])[yhatobs+1]
-                                 #copy[,i][na.index]<-pmm(yhatobs = yhatobs2,yhatmis = pred.y,yobs=yobs.list[[i]],k=self$pmm.k)
-                                 #update dataset
-                                 #copy[,i][na.index]<-pred.y
 
                                  num.result=pmm(yhatobs = yhatObs,yhatmis = xgb.pred,yobs=yobs.list[[i]],k=self$pmm.k)
                                  #change to factor
                                  copy[,i][na.index]<- levels(sorted.df[,i])[num.result+1]
 
                                }else{
-                                 obj.type= "multi:softmax"
+
+
+                                 obj.type= "multi:softprob"
                                  N.class=length(levels(sorted.df[,i]))
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, num_class=N.class,missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
                                                  min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
-                                 xgb.pred = predict(xgb.fit,mis.data)
-                                 #pred.y=levels(sorted.df[,i])[xgb.pred+1]
+                                 xgb.pred = predict(xgb.fit,mis.data,reshape = T)
 
-                                 yhatObs=predict(xgb.fit,Obs.data)
-                                 num.result=pmm(yhatobs = yhatObs,yhatmis = xgb.pred,yobs=yobs.list[[i]],k=self$pmm.k)
+                                 yhatObs=predict(xgb.fit,Obs.data,reshape = T)
+
+                                 if(self$pmm.link=="logit"){
+                                   xgb.pred=log(xgb.pred/(1-xgb.pred))
+                                   yhatObs=log(yhatObs/(1-yhatObs))
+                                 }
+                                 num.result=pmm.multiclass(donor.pred = yhatObs,target.pred = xgb.pred,donor.obs = yobs.list[[i]],k=self$pmm.k)
                                  #change to factor
                                  copy[,i][na.index]<- levels(sorted.df[,i])[num.result+1]
-                                 #yhatobs2=levels(sorted.df[,i])[yhatobs+1]
-                                 #copy[,i][na.index]<-pmm(yhatobs = yhatobs2,yhatmis = pred.y,yobs=yobs.list[[i]],k=self$pmm.k)
-                                 #update dataset
-                                 #copy[,i][na.index]<-pred.y
+
                                }
 
                              }
