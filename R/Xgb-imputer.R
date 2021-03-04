@@ -423,9 +423,9 @@ Mixgb <- R6Class("Mixgb",
                                  obj.type<-"binary:logistic"
                                }
 
-                               xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=nthread,early_stopping_rounds=early_stopping_rounds,
-                                               nrounds=nrounds, max_depth=max_depth,gamma=gamma,eta=eta,colsample_bytree=colsample_bytree,
-                                               min_child_weight=min_child_weight,subsample=subsample,verbose = verbose, print_every_n = print_every_n)
+                               xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
+                                               nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
+                                               min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
                                xgb.pred = predict(xgb.fit,obs.data)
                                yhatobs.list[[i]]=xgb.pred
 
