@@ -20,7 +20,7 @@ Mixgb <- R6Class("Mixgb",
                       #'@field min_child_weight Default: 1
                       #'@field subsample Default: 1
                       #'@field pmm.k Default: 5
-                      #'@field pmm.type Default: NULL
+                      #'@field pmm.type Default: "auto" (used to be NULL). "auto": pmm.type2 for continuous, no pmm for categorical
                       #'@field pmm.link match on predictive mean of "logit" or "prob".Default: "logit"
                       #'@field initial.imp Default: "random"
                       #'@field print_every_n Default: 10L
@@ -57,14 +57,14 @@ Mixgb <- R6Class("Mixgb",
                     #'@param min_child_weight Default: 1
                     #'@param subsample Default: 1
                     #'@param pmm.k Default: 5
-                    #'@param pmm.type Default: NULL
+                    #'@param pmm.type Default: "auto" (used to be NULL)
                     #'@param pmm.link Default: "logit"
                     #'@param initial.imp Default: "random"
                     #'@param print_every_n Default: 10L
                     #'@param verbose Default: 1
 
 
-                    initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type=NULL,pmm.link="logit",initial.imp="random",print_every_n = 10L,verbose=1) {
+                    initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type="auto",pmm.link="logit",initial.imp="random",print_every_n = 10L,verbose=1) {
                       self$data<-data
                       self$nrounds=nrounds
                       self$max_depth=max_depth
@@ -666,8 +666,137 @@ Mixgb <- R6Class("Mixgb",
                          return(imputed.data)
 
 
+                       }else if(self$pmm.type=="auto"){
+                         imputed.data<-list()
+                         yobs.list<-list()
+
+
+                         for(i in 1:p){
+                           if(type[i]=="numeric"){
+                             na.index=which(is.na(sorted.df[,i]))
+                             if(length(na.index)>0){
+                               obs.y=sorted.df[,i][-na.index]
+                               yobs.list[[i]]=obs.y
+                               }
+                           }
+
+                         }
+
+
+
+
+
+
+                         for(k in 1:m){
+
+
+                           index=sample(Nrow,Nrow,replace=TRUE)
+                           Boot.data=sorted.df[index,]
+
+                           copy=initial.df
+
+                           for(i in 1:p){
+                             Boot.initial=copy[index,]
+
+                             Bna.index=which(is.na(Boot.data[,i]))
+                             na.index=which(is.na(sorted.df[,i]))
+
+                             if(length(Bna.index)>0){
+
+                               obs.y=Boot.data[,i][-Bna.index]
+
+                               if(type[i]!="numeric"){
+                                 obs.y=as.integer(obs.y)-1
+                               }
+
+
+
+                               if(type[i]=="numeric"){
+                                 #pmm type 2 for continuous variables
+                                 if(p==2){
+                                   obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=Boot.initial[-Bna.index,])
+                                   Obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=initial.df[-na.index,])
+                                   mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=copy[na.index,])
+                                 }else{
+                                   obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=Boot.initial[-Bna.index,])[,-1]
+                                   Obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=initial.df[-na.index,])[,-1]
+                                   mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=copy[na.index,])[,-1]
+                                 }
+
+                                 obj.type<-"reg:squarederror"
+                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
+                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
+                                 pred.y=predict(xgb.fit,mis.data)
+                                 ###use boostrap observed data to fit model
+                                 #use this model to predict all missing whole data and match with all observed whole data
+                                 yhatobs=predict(xgb.fit,Obs.data)
+                                 #update dataset
+                                 copy[,i][na.index]<-pmm(yhatobs = yhatobs,yhatmis = pred.y,yobs=yobs.list[[i]],k=self$pmm.k)
+
+
+
+                               }else if(type[i]=="binary"){
+
+                                 if(p==2){
+                                   obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=Boot.initial[-Bna.index,])
+                                   mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=copy[na.index,])
+                                 }else{
+                                   obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=Boot.initial[-Bna.index,])[,-1]
+                                   mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=copy[na.index,])[,-1]
+                                 }
+
+
+                                 obj.type<-"binary:logistic"
+
+                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
+                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
+
+                                 xgb.pred = predict(xgb.fit,mis.data)
+                                 pred.y=ifelse(xgb.pred>=0.5,1,0)
+
+                                 #update dataset
+                                 copy[,i][na.index]<-levels(sorted.df[,i])[pred.y+1]
+
+
+                               }else{
+                                 if(p==2){
+                                   obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=Boot.initial[-Bna.index,])
+                                   mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=copy[na.index,])
+                                 }else{
+                                   obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=Boot.initial[-Bna.index,])[,-1]
+                                   mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=copy[na.index,])[,-1]
+                                 }
+
+
+
+                                 obj.type= "multi:softmax"
+                                 N.class=length(levels(sorted.df[,i]))
+                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, num_class=N.class,missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
+                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
+                                 xgb.pred = predict(xgb.fit,mis.data)
+                                 #update dataset
+                                 copy[,i][na.index]<-levels(sorted.df[,i])[xgb.pred+1]
+
+
+                               }
+
+                             }
+
+                           }
+                           imputed.data[[k]]<-copy[order(sorted.idx)]
+
+
+
+                         }
+
+                         return(imputed.data)
+
+
                        }
-                        #end of else pmm not null else if pmm.type==1 else pmm.type==2
+                        #end of else pmm not null else if pmm.type==1 else pmm.type==2 else "auto"
 
 
 
