@@ -22,6 +22,7 @@ Mixgb <- R6Class("Mixgb",
                       #'@field pmm.k Default: 5
                       #'@field pmm.type Default: "auto" (used to be NULL). "auto": pmm.type2 for continuous, no pmm for categorical
                       #'@field pmm.link match on predictive mean of "logit" or "prob".Default: "logit"
+                      #'@field scale_pos_weight Default: 1
                       #'@field initial.imp Default: "random"
                       #'@field print_every_n Default: 10L
                       #'@field verbose Default: 1
@@ -42,6 +43,7 @@ Mixgb <- R6Class("Mixgb",
                       pmm.type=NULL,
                       pmm.link=NULL,
                       initial.imp=NULL,
+                      scale_pos_weight=NULL,
                     #'@description Create a new \code{Mixgb} object. This is used to set up the multiple imputation imputer using xgboost.
                     #'@examples
                     #'MIXGB=Mixgb$new(withNA.df)
@@ -62,9 +64,11 @@ Mixgb <- R6Class("Mixgb",
                     #'@param initial.imp Default: "random"
                     #'@param print_every_n Default: 10L
                     #'@param verbose Default: 1
+                    #'@param scale_pos_weight Default:1
 
 
-                    initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type="auto",pmm.link="logit",initial.imp="random",print_every_n = 10L,verbose=1) {
+
+                    initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type="auto",pmm.link="logit",scale_pos_weight=1,initial.imp="random",print_every_n = 10L,verbose=1) {
                       self$data<-data
                       self$nrounds=nrounds
                       self$max_depth=max_depth
@@ -81,6 +85,7 @@ Mixgb <- R6Class("Mixgb",
                       self$pmm.type=pmm.type
                       self$pmm.link=pmm.link
                       self$initial.imp=initial.imp
+                      self$scale_pos_weight=scale_pos_weight
 
                     },
 
@@ -257,10 +262,16 @@ Mixgb <- R6Class("Mixgb",
                                 sorted.df[,i][na.index]<- pmm(yhatobs = yhatobs,yhatmis = pred.y,yobs=obs.y,k=self$pmm.k)
 
                               }else if(type[i]=="binary"){
+
+                                if(self$scale_pos_weight=="auto"){
+                                  t=sort(table(obs.y))
+                                  self$scale_pos_weight=t[2]/t[1]
+                                }
+
                                 obj.type<-"binary:logistic"
                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                min_child_weight=self$min_child_weight,subsample=self$subsample,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                 xgb.pred = predict(xgb.fit,mis.data)
                                 yhatobs=predict(xgb.fit,obs.data)
@@ -343,6 +354,12 @@ Mixgb <- R6Class("Mixgb",
 
 
                                }else if(type[i]=="binary"){
+
+                                 if(self$scale_pos_weight=="auto"){
+                                   t=sort(table(obs.y))
+                                   self$scale_pos_weight=t[2]/t[1]
+                                 }
+
                                  obj.type<-"binary:logistic"
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
@@ -415,6 +432,12 @@ Mixgb <- R6Class("Mixgb",
                                yhatobs.list[[i]]=yhatobs
 
                              }else if(type[i]=="binary"){
+
+                               if(self$scale_pos_weight=="auto"){
+                                 t=sort(table(obs.y))
+                                 self$scale_pos_weight=t[2]/t[1]
+                               }
+
 
                                 if(self$pmm.link=="logit"){
                                  obj.type<-"binary:logitraw"
@@ -497,6 +520,11 @@ Mixgb <- R6Class("Mixgb",
 
 
                                }else if(type[i]=="binary"){
+
+                                 if(self$scale_pos_weight=="auto"){
+                                   t=sort(table(obs.y))
+                                   self$scale_pos_weight=t[2]/t[1]
+                                 }
 
                                  if(self$pmm.link=="logit"){
                                    obj.type<-"binary:logitraw"
@@ -610,6 +638,11 @@ Mixgb <- R6Class("Mixgb",
 
 
                                }else if(type[i]=="binary"){
+
+                                 if(self$scale_pos_weight=="auto"){
+                                   t=sort(table(obs.y))
+                                   self$scale_pos_weight=t[2]/t[1]
+                                 }
 
                                  if(self$pmm.link=="logit"){
                                    obj.type<-"binary:logitraw"
@@ -737,6 +770,12 @@ Mixgb <- R6Class("Mixgb",
 
 
                                }else if(type[i]=="binary"){
+
+                                 if(self$scale_pos_weight=="auto"){
+                                   t=sort(table(obs.y))
+                                   self$scale_pos_weight=t[2]/t[1]
+                                 }
+
 
                                  if(p==2){
                                    obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=Boot.initial[-Bna.index,])
