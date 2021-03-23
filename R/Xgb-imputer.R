@@ -68,7 +68,7 @@ Mixgb <- R6Class("Mixgb",
 
 
 
-                    initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type="auto",pmm.link="logit",scale_pos_weight=1,initial.imp="random",print_every_n = 10L,verbose=1) {
+                    initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type="auto",pmm.link="logit",scale_pos_weight=1,initial.imp="random",print_every_n = 10L,verbose=0) {
                       self$data<-data
                       self$nrounds=nrounds
                       self$max_depth=max_depth
@@ -203,21 +203,32 @@ Mixgb <- R6Class("Mixgb",
 
                               }else if(type[i]=="binary"){
 
-                                if(self$scale_pos_weight=="auto"){
-                                  t=sort(table(obs.y))
-                                  self$scale_pos_weight=t[2]/t[1]
-                                }
+                                 t=sort(table(obs.y))
+                                 #t[1] minority class t[2]majority class
 
-                                obj.type<-"binary:logistic"
-                                xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
-                                                nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
 
-                                xgb.pred = predict(xgb.fit,mis.data)
-                                pred.y=ifelse(xgb.pred>=0.5,1,0)
-                                pred.y=levels(sorted.df[,i])[pred.y+1]
-                                #update dataset
-                                sorted.df[,i][na.index]<-pred.y
+
+                                  if(!is.na(t[2])){
+                                    obj.type<-"binary:logistic"
+                                    xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
+                                                    nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
+                                                    min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
+
+                                    xgb.pred = predict(xgb.fit,mis.data)
+                                    pred.y=ifelse(xgb.pred>=0.5,1,0)
+                                    pred.y=levels(sorted.df[,i])[pred.y+1]
+                                    #update dataset
+                                    sorted.df[,i][na.index]<-pred.y
+                                  }else{
+                                    #skip xgboost training, just impute majority class
+                                    sorted.df[,i][na.index]<-names(t[1])
+                                  }
+
+
+
+
+
+
 
                               }else{
                                 obj.type= "multi:softmax"
@@ -269,21 +280,30 @@ Mixgb <- R6Class("Mixgb",
 
                               }else if(type[i]=="binary"){
 
-                                if(self$scale_pos_weight=="auto"){
-                                  t=sort(table(obs.y))
-                                  self$scale_pos_weight=t[2]/t[1]
+
+
+
+                                t=sort(table(obs.y))
+                                #t[1] minority class t[2]majority class
+
+                                if(!is.na(t[2])){
+                                  obj.type<-"binary:logistic"
+                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
+                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
+                                                  min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
+
+                                  xgb.pred = predict(xgb.fit,mis.data)
+                                  yhatobs=predict(xgb.fit,obs.data)
+                                  #update dataset
+                                  num.result<- pmm(yhatobs = yhatobs,yhatmis = xgb.pred,yobs=obs.y,k=self$pmm.k)
+                                  sorted.df[,i][na.index]<- levels(sorted.df[,i])[num.result+1]
+
+                                }else{
+                                  #skip xgboost training, just impute majority class
+                                  sorted.df[,i][na.index]<-names(t[1])
                                 }
 
-                                obj.type<-"binary:logistic"
-                                xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
-                                                nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
 
-                                xgb.pred = predict(xgb.fit,mis.data)
-                                yhatobs=predict(xgb.fit,obs.data)
-                                #update dataset
-                                num.result<- pmm(yhatobs = yhatobs,yhatmis = xgb.pred,yobs=obs.y,k=self$pmm.k)
-                                sorted.df[,i][na.index]<- levels(sorted.df[,i])[num.result+1]
 
 
                               }else{
@@ -361,22 +381,30 @@ Mixgb <- R6Class("Mixgb",
 
                                }else if(type[i]=="binary"){
 
-                                 if(self$scale_pos_weight=="auto"){
-                                   t=sort(table(obs.y))
-                                   self$scale_pos_weight=t[2]/t[1]
+                                 t=sort(table(obs.y))
+                                 #t[1] minority class t[2]majority class
+
+                                 if(!is.na(t[2])){
+                                   obj.type<-"binary:logistic"
+                                   xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
+                                                   nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
+                                                   min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
+
+                                   xgb.pred = predict(xgb.fit,mis.data)
+                                   pred.y=ifelse(xgb.pred>=0.5,1,0)
+                                   pred.y=levels(sorted.df[,i])[pred.y+1]
+
+                                   #update dataset
+                                   copy[,i][na.index]<-pred.y
+
+                                 }else{
+                                   #skip xgboost training, just impute majority class
+                                   copy[,i][na.index]<-names(t[1])
                                  }
 
-                                 obj.type<-"binary:logistic"
-                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
-                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
 
-                                 xgb.pred = predict(xgb.fit,mis.data)
-                                 pred.y=ifelse(xgb.pred>=0.5,1,0)
-                                 pred.y=levels(sorted.df[,i])[pred.y+1]
 
-                                 #update dataset
-                                 copy[,i][na.index]<-pred.y
+
 
                                }else{
                                  obj.type= "multi:softmax"
@@ -439,24 +467,30 @@ Mixgb <- R6Class("Mixgb",
 
                              }else if(type[i]=="binary"){
 
-                               if(self$scale_pos_weight=="auto"){
-                                 t=sort(table(obs.y))
-                                 self$scale_pos_weight=t[2]/t[1]
-                               }
+                               t=sort(table(obs.y))
+                               #t[1] minority class t[2]majority class
+
+                               if(!is.na(t[2])){
+                                 if(self$pmm.link=="logit"){
+                                   obj.type<-"binary:logitraw"
+                                 }else{
+                                   #pmm by "prob"
+                                   obj.type<-"binary:logistic"
+                                 }
+
+                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
+                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
+                                 xgb.pred = predict(xgb.fit,obs.data)
+                                 yhatobs.list[[i]]=xgb.pred
 
 
-                                if(self$pmm.link=="logit"){
-                                 obj.type<-"binary:logitraw"
                                }else{
-                                 #pmm by "prob"
-                                 obj.type<-"binary:logistic"
+                                 #skip xgboost training, just impute majority class
+                                 yhatobs.list[[i]]<-rep(names(t[1]),length(obs.y))
                                }
 
-                               xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
-                                               nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                               min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
-                               xgb.pred = predict(xgb.fit,obs.data)
-                               yhatobs.list[[i]]=xgb.pred
+
 
                              }else{
                                obj.type= "multi:softprob"
@@ -527,27 +561,36 @@ Mixgb <- R6Class("Mixgb",
 
                                }else if(type[i]=="binary"){
 
-                                 if(self$scale_pos_weight=="auto"){
-                                   t=sort(table(obs.y))
-                                   self$scale_pos_weight=t[2]/t[1]
-                                 }
+                                 t=sort(table(obs.y))
+                                 #t[1] minority class t[2]majority class
 
-                                 if(self$pmm.link=="logit"){
-                                   obj.type<-"binary:logitraw"
+                                 if(!is.na(t[2])){
+                                   if(self$pmm.link=="logit"){
+                                     obj.type<-"binary:logitraw"
+                                   }else{
+                                     #pmm by "prob"
+                                     obj.type<-"binary:logistic"
+                                   }
+
+                                   xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
+                                                   nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
+                                                   min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
+
+                                   xgb.pred = predict(xgb.fit,mis.data)
+
+                                   num.result=pmm(yhatobs = yhatobs.list[[i]],yhatmis = xgb.pred,yobs=yobs.list[[i]],k=self$pmm.k)
+                                   #change to factor
+                                   copy[,i][na.index]<- levels(sorted.df[,i])[num.result+1]
+
+
                                  }else{
-                                   #otherwise pmm by "prob"
-                                   obj.type<-"binary:logistic"
+                                   #skip xgboost training, just impute majority class
+                                   copy[,i][na.index]<-names(t[1])
                                  }
 
-                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
-                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
 
-                                 xgb.pred = predict(xgb.fit,mis.data)
 
-                                 num.result=pmm(yhatobs = yhatobs.list[[i]],yhatmis = xgb.pred,yobs=yobs.list[[i]],k=self$pmm.k)
-                                 #change to factor
-                                 copy[,i][na.index]<- levels(sorted.df[,i])[num.result+1]
+
 
                                }else{
                                  obj.type= "multi:softprob"
@@ -586,7 +629,8 @@ Mixgb <- R6Class("Mixgb",
 
                          for(i in 1:p){
                            na.index=which(is.na(sorted.df[,i]))
-                           if(length(na.index)>0){
+
+                            if(length(na.index)>0){
                              obs.y=sorted.df[,i][-na.index]
 
                              if(type[i]!="numeric"){
@@ -645,31 +689,37 @@ Mixgb <- R6Class("Mixgb",
 
                                }else if(type[i]=="binary"){
 
-                                 if(self$scale_pos_weight=="auto"){
-                                   t=sort(table(obs.y))
-                                   self$scale_pos_weight=t[2]/t[1]
-                                 }
+                                 t=sort(table(obs.y))
+                                 #t[1] minority class t[2]majority class
 
-                                 if(self$pmm.link=="logit"){
-                                   obj.type<-"binary:logitraw"
+                                 if(!is.na(t[2])){
+                                   if(self$pmm.link=="logit"){
+                                     obj.type<-"binary:logitraw"
+                                   }else{
+                                     #pmm by "prob"
+                                     obj.type<-"binary:logistic"
+                                   }
+                                   xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
+                                                   nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
+                                                   min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
+
+                                   xgb.pred = predict(xgb.fit,mis.data)
+
+
+                                   yhatObs=predict(xgb.fit,Obs.data)
+
+                                   num.result=pmm(yhatobs = yhatObs,yhatmis = xgb.pred,yobs=yobs.list[[i]],k=self$pmm.k)
+                                   #change to factor
+                                   copy[,i][na.index]<- levels(sorted.df[,i])[num.result+1]
+
                                  }else{
-                                   #otherwise pmm by "prob"
-                                   obj.type<-"binary:logistic"
+                                   #skip xgboost training, just impute majority class
+                                   copy[,i][na.index]<-names(t[1])
                                  }
 
 
-                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
-                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
-
-                                 xgb.pred = predict(xgb.fit,mis.data)
 
 
-                                 yhatObs=predict(xgb.fit,Obs.data)
-
-                                 num.result=pmm(yhatobs = yhatObs,yhatmis = xgb.pred,yobs=yobs.list[[i]],k=self$pmm.k)
-                                 #change to factor
-                                 copy[,i][na.index]<- levels(sorted.df[,i])[num.result+1]
 
                                }else{
 
@@ -777,12 +827,6 @@ Mixgb <- R6Class("Mixgb",
 
                                }else if(type[i]=="binary"){
 
-                                 if(self$scale_pos_weight=="auto"){
-                                   t=sort(table(obs.y))
-                                   self$scale_pos_weight=t[2]/t[1]
-                                 }
-
-
                                  if(p==2){
                                    obs.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=Boot.initial[-Bna.index,])
                                    mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=copy[na.index,])
@@ -791,18 +835,33 @@ Mixgb <- R6Class("Mixgb",
                                    mis.data=sparse.model.matrix(as.formula(paste(Names[i],"~.",sep="")),data=copy[na.index,])[,-1]
                                  }
 
+                                 t=sort(table(obs.y))
+                                 #t[1] minority class t[2]majority class
 
-                                 obj.type<-"binary:logistic"
+                                 if(!is.na(t[2])){
 
-                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
-                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
+                                   obj.type<-"binary:logistic"
 
-                                 xgb.pred = predict(xgb.fit,mis.data)
-                                 pred.y=ifelse(xgb.pred>=0.5,1,0)
+                                   xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
+                                                   nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
+                                                   min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,verbose = self$verbose, print_every_n = self$print_every_n)
 
-                                 #update dataset
-                                 copy[,i][na.index]<-levels(sorted.df[,i])[pred.y+1]
+                                   xgb.pred = predict(xgb.fit,mis.data)
+                                   pred.y=ifelse(xgb.pred>=0.5,1,0)
+
+                                   #update dataset
+                                   copy[,i][na.index]<-levels(sorted.df[,i])[pred.y+1]
+
+
+                                 }else{
+                                   #skip xgboost training, just impute majority class
+                                   copy[,i][na.index]<-names(t[1])
+                                 }
+
+
+
+
+
 
 
                                }else{
