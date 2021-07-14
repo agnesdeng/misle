@@ -16,12 +16,18 @@ The R package `misle` is built using TensorFlow™, which enables fast numerical
 - **multiple imputation by variational autoencoders**
 - **multiple imputation by denoising autoencoders(with dropout)**
 
-## Install
+## Install `mixgb` (Highly recommend)
+If users only want to use multiple imputation through XGBoost, please install this simplified R package instead.
+```r
+devtools::install_github("agnesdeng/mixgb",ref="main")
+```
+
+
+## Install `misle` (It may have compatibility issues with python version/tensorflow version) 
 
 The current version of `misle` can be installed from GitHub as follows:
 
 ``` r
-install.packages("devtools")
 devtools::install_github("agnesdeng/misle")
 ```
 Similar to the `keras` R package, we have a function `install_misle()` to ensure that tensorflow would be installed as required. 
@@ -61,7 +67,7 @@ mixgb.data<-MIXGB$impute(m=5)
 
 
 
-## Expected to be done in 2020-2021
+## Expected to be done in 2021-2022
 
 
 - **Simulation studies**
