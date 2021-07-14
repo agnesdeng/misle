@@ -10,9 +10,11 @@ The R package `misle` is built using TensorFlow™, which enables fast numerical
 
 ## Current version
 
+- **multiple imputation by XGboost**
+
+## Under development 
 - **multiple imputation by variational autoencoders**
 - **multiple imputation by denoising autoencoders(with dropout)**
-- **multiple imputation by XGboost**
 
 ## Install
 
@@ -35,21 +37,27 @@ library(tensorflow)
 ```
 
 ## Example: multiple imputation through XGBoost
-```
-#load the NHANES dataset from library "hexbin"
+
+We first load the NHANES dataset from the R package "hexbin".
+``` r
 library(hexbin)
 data("NHANES")
-
-#create 30% MCAR missing data
-withNA.df<-createNA(NHANES,p=0.3)
-
-#create an Mixgb imputer with your choice of settings or leave it as default
-MIXGB<-Mixgb$new(withNA.df,pmm.type="auto",pmm.k = 5)
-
-#use this imputer to obtain m imputed datasets
-mixgb.data<-MIXGB$impute(m=5)
-
 ```
+
+Create 30% MCAR missing data.
+``` r
+withNA.df<-createNA(NHANES,p=0.3)
+```
+
+Create an Mixgb imputer with your choice of settings or leave it as default.
+``` r
+MIXGB<-Mixgb$new(withNA.df,pmm.type="auto",pmm.k = 5)
+```
+
+Use this imputer to obtain m imputed datasets.
+``` r
+mixgb.data<-MIXGB$impute(m=5)
+``` 
 
 
 
