@@ -34,6 +34,23 @@ Usually after these two steps, everything would be fine for Linux & Mac. If the 
 library(tensorflow)
 ```
 
+## Example: multiple imputation through XGBoost
+```
+#load the NHANES dataset from library "hexbin"
+library(hexbin)
+data("NHANES")
+
+#create 30% MCAR missing data
+withNA.df<-createNA(NHANES,p=0.3)
+
+#create an Mixgb imputer with your choice of settings or leave it as default
+MIXGB<-Mixgb$new(withNA.df,pmm.type="auto",pmm.k = 5)
+
+#use this imputer to obtain m imputed datasets
+mixgb.data<-MIXGB$impute(m=5)
+
+```
+
 
 
 ## Expected to be done in 2020-2021
