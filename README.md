@@ -17,7 +17,7 @@ The R package `misle` is built using TensorFlow™, which enables fast numerical
 - **multiple imputation by denoising autoencoders(with dropout)**
 
 ## Install `mixgb` (Highly recommend)
-If users only want to use multiple imputation through XGBoost, please install this simplified R package instead.
+If users only want to use multiple imputation through XGBoost, please install this simplified R package `mixgb` instead.
 ```r
 devtools::install_github("agnesdeng/mixgb",ref="main")
 ```
