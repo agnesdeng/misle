@@ -16,8 +16,9 @@ install_misle(
 \arguments{
 \item{method}{Installation method ("virtualenv" or "conda")}
 
-\item{conda}{Path to conda executable (or "auto" to find conda using the
-PATH and other conventional install locations).}
+\item{conda}{The path to a \code{conda} executable. Use \code{"auto"} to allow
+\code{reticulate} to automatically find an appropriate \code{conda} binary. See
+\strong{Finding Conda} for more details.}
 
 \item{version}{TensorFlow version to install. Up to and including TensorFlow 2.0,
 specify "default" to install the CPU version of the latest release;

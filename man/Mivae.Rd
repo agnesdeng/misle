@@ -74,7 +74,7 @@ R6 class for Mivae imputer
   all.numeric = FALSE,
   add.noise = FALSE,
   SD = 1,
-  pmm = TRUE,
+  pmm = FALSE,
   pmm.k = 3
 )}\if{html}{\out{</div>}}
 }

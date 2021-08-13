@@ -4,7 +4,7 @@
 \alias{denoise_decoder}
 \title{Midae Decoder update function}
 \usage{
-denoise_decoder(act, z, weights, biases, hidden_keep, decoder_structure)
+denoise_decoder(act, z, weights, biases, hidden_drop, decoder_structure)
 }
 \description{
 Midae Decoder update function

@@ -16,12 +16,6 @@ The R package `misle` is built using TensorFlow™, which enables fast numerical
 - **multiple imputation by variational autoencoders**
 - **multiple imputation by denoising autoencoders(with dropout)**
 
-## Install `mixgb` (Highly recommend)
-If users only want to use multiple imputation through XGBoost, please install this simplified R package `mixgb` instead.
-```r
-devtools::install_github("agnesdeng/mixgb",ref="main")
-```
-
 
 ## Install `misle` (It may have compatibility issues with python version/tensorflow version) 
 
@@ -42,6 +36,12 @@ Usually after these two steps, everything would be fine for Linux & Mac. If the 
 library(tensorflow)
 ```
 
+## Install `mixgb` (Highly recommend)
+If users only want to use multiple imputation through XGBoost, please install this simplified R package `mixgb` instead.
+```r
+devtools::install_github("agnesdeng/mixgb")
+library(mixgb)
+```
 ## Example: multiple imputation through XGBoost
 
 We first load the NHANES dataset from the R package "hexbin".
@@ -64,6 +64,55 @@ Use this imputer to obtain m imputed datasets.
 ``` r
 mixgb.data<-MIXGB$impute(m=5)
 ``` 
+
+## Example: impute new unseen data
+First we can split a dataset as training data and test data.
+``` r
+set.seed(2021)
+n=nrow(iris)
+idx=sample(1:n, size = round(0.7*n), replace=FALSE)
+
+train.df=iris[idx,]
+test.df=iris[-idx,]
+```
+
+Since the original data doesn't have any missing value, we create some.
+``` r
+trainNA.df=createNA(train.df,p=0.3)
+testNA.df=createNA(test.df,p=0.3)
+```
+
+We can use the training data (with missing values) to obtain m imputed datasets. Imputed datasets, the models used in training processes and some parameters are saved in the object `mixgb.obj`.
+
+``` r
+MIXGB=Mixgb.train$new(trainNA.df)
+mixgb.obj=MIXGB$impute(m=5)
+```
+We can now use this object to impute new unseen data by using the function `impute.new( )`.  If PMM is applied, predicted values of missing entries in the new dataset are matched with training data by default. Users can choose to match with the new dataset instead by setting `pmm.new = TRUE`.
+
+``` r
+test.impute=impute.new(object = mixgb.obj, newdata = testNA.df)
+test.impute
+```
+
+``` r
+test.impute=impute.new(object = mixgb.obj, newdata = testNA.df, pmm.new = TRUE)
+test.impute
+```
+Users can also set the number of donors for PMM when impute the new dataset. If  `pmm.k` is not set here, it will use the saved parameter value from the training object  `mixgb.obj`.
+
+``` r
+test.impute=impute.new(object = mixgb.obj, newdata = testNA.df, pmm.new = TRUE, pmm.k=3)
+test.impute
+```
+
+Similarly, users can set the number of imputed datasets `m`.  Note that this value has to be smaller than the one set in the training object. If it is not specified, it will use the same `m` value as the training object.
+
+``` r
+test.impute=impute.new(object = mixgb.obj, newdata = testNA.df, pmm.new = TRUE, m=4)
+test.impute
+```
+
 
 
 

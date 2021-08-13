@@ -107,8 +107,10 @@ Mivae <- R6::R6Class("Mivae",
 
                      with(self$vae_graph$as_default(),{
                        tf <- tensorflow::tf
-                       self$x = tf$placeholder(tf$float32, shape(NULL, self$n_input), name='x')
-                       self$na_idx=tf$placeholder(tf$bool,shape(NULL, self$n_input),name='na_idx')
+                       tf$compat$v1$disable_eager_execution()
+                       tf$compat$v1$disable_v2_behavior()
+                       self$x = tf$compat$v1$placeholder(tf$float32, shape(NULL, self$n_input), name='x')
+                       self$na_idx=tf$compat$v1$placeholder(tf$bool,shape(NULL, self$n_input),name='na_idx')
                        self$network_weights<-mivae_init(encoder_structure=self$encoder_structure,decoder_structure=self$decoder_structure,n_input=self$n_input,n_h=self$n_h)
                        self$networkOutput<-mivae_output(self$act,self$x, self$network_weights, feed_size=self$batch_size,self$n_h,encoder_structure=self$encoder_structure,decoder_structure=self$decoder_structure)
                        self$output_op<-output_function(self$networkOutput$x_reconstr_mean,self$output_split,self$output_struc)
@@ -118,7 +120,7 @@ Mivae <- R6::R6Class("Mivae",
                        #
                        self$cost=mivae_optimizer(self$x,self$na_idx,self$networkOutput,self$output_split,self$output_struc,kld=TRUE,loss_weight=self$loss_weight,kld_weight=self$kld_weight,sigma_weight=self$sigma_weight)
                        if(optimizer=="Adam"){
-                         self$optimizer = tf$train$AdamOptimizer(learning_rate=self$learn_rate,epsilon=self$epsilon)$minimize(self$cost)
+                         self$optimizer = tf$compat$v1$train$AdamOptimizer(learning_rate=self$learn_rate,epsilon=self$epsilon)$minimize(self$cost)
                        }else if(optimizer=="AdamW"){
                          self$optimizer = tf$contrib$opt$AdamWOptimizer(weight_decay=self$weight_decay,learning_rate=self$learn_rate,epsilon=self$epsilon)$minimize(self$cost)
                        }else if(optimizer=="Adadelta"){
@@ -127,12 +129,13 @@ Mivae <- R6::R6Class("Mivae",
                          self$optimizer = tf$compat$v1$train$RMSPropOptimizer(learning_rate=self$learn_rate,decay=self$decay,momentum=self$momentum,epsilon=self$epsilon)$minimize(self$cost)
                        }
 
-                       self$saver=tf$train$Saver()
+                       self$saver=tf$compat$v1$train$Saver()
                      })
                    },
 
                    train=function(print_freq=1,bootstrap=FALSE){
                      tf <- tensorflow::tf
+                     tf$compat$v1$disable_v2_behavior()
                      data=self$onehot.df
                      if(bootstrap){
                        Nrow=nrow(data)
@@ -147,8 +150,8 @@ Mivae <- R6::R6Class("Mivae",
                      notna_loc<-!is.na(data)
                      idx <- which(is.na(data))
                      scaled.mat[idx]<-0
-                     with(tf$Session(graph=self$vae_graph) %as% sess,{
-                       sess$run(tf$global_variables_initializer())
+                     with(tf$compat$v1$Session(graph=self$vae_graph) %as% sess,{
+                       sess$run(tf$compat$v1$global_variables_initializer())
                        num_batch=(nrow(scaled.mat) %/% (self$batch_size))
                        batchset=batch_iter(scaled.mat,self$batch_size)
 
@@ -165,7 +168,7 @@ Mivae <- R6::R6Class("Mivae",
                          }
                             current_loss<-current_loss/num_batch
 
-                            #self$saver$save(sess,"Temp/Mivae.ckpt")
+
 
                          if (k %% print_freq== 0){
                            cat("Iteration - ", k, "Current Loss - ", current_loss,"\n")
@@ -181,7 +184,7 @@ Mivae <- R6::R6Class("Mivae",
                      })
                    },
 
-                   impute=function(m=5,onehot=FALSE,all.numeric=FALSE,add.noise=FALSE,SD=1,pmm=TRUE,pmm.k=3){
+                   impute=function(m=5,onehot=FALSE,all.numeric=FALSE,add.noise=FALSE,SD=1,pmm=FALSE,pmm.k=3){
                      tf <- tensorflow::tf
                      data=self$onehot.df
                      #scale data and get colmin and colmax
@@ -194,8 +197,8 @@ Mivae <- R6::R6Class("Mivae",
                      notna_loc<-!is.na(data)
                      idx <- which(is.na(data))
                      scaled.mat[idx]<-0
-                     with(tf$Session(graph=self$vae_graph) %as% sess,{
-                       sess$run(tf$global_variables_initializer())
+                     with(tf$compat$v1$Session(graph=self$vae_graph) %as% sess,{
+                       sess$run(tf$compat$v1$global_variables_initializer())
                        self$saver$restore(sess,"Temp/Mivae.ckpt")
                        x <- self$x
                        #self$whole_networkOutput<-network_ParEval(self$x, self$network_weights,feed_size=self$whole_size,self$n_h)
@@ -203,7 +206,7 @@ Mivae <- R6::R6Class("Mivae",
                        imputed.data<-list()
                        onehot.data<-list()
                        if(pmm){
-
+                         #future work..hasn't finished yet
                          for(i in 1:m){
                            output.list<-sess$run(self$whole_op, feed_dict = dict(x=scaled.mat))
                            output.mat<-matrix(unlist(output.list),ncol=self$n_input)

@@ -40,8 +40,8 @@ R6 class for Midae imputer
   learn_rate = 1e-04,
   iteration = 400,
   batch_size = 500,
-  input_keep = 0.8,
-  hidden_keep = 1,
+  input_drop = 0.2,
+  hidden_drop = 0,
   act = tf$nn$softplus,
   weight_decay = "default",
   epsilon = 1e-07,
@@ -73,7 +73,7 @@ R6 class for Midae imputer
   all.numeric = FALSE,
   add.noise = FALSE,
   SD = 1,
-  pmm = TRUE
+  pmm = FALSE
 )}\if{html}{\out{</div>}}
 }
 

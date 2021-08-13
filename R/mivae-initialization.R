@@ -1,21 +1,3 @@
-#' Xavier Initialization using Uniform distribution
-
-xavier_init<-function(n_inputs, n_outputs, constant=1){
-  tf <- tensorflow::tf
-  low = -constant*sqrt(6.0/(n_inputs + n_outputs))
-  high = constant*sqrt(6.0/(n_inputs + n_outputs))
-  return(tf$random_uniform(shape(n_inputs, n_outputs), minval=low, maxval=high, dtype=tf$float32))
-}
-
-
-
-#' Kaiming He Initialization
-he_init<-function(n_inputs,n_outputs,constant=1){
-  tf<-tensorflow::tf
-  low = -constant*sqrt(3.0/(n_inputs))
-  high = constant*sqrt(3.0/(n_inputs))
-  return(tf$random_uniform(shape(n_inputs, n_outputs), minval=low, maxval=high, dtype=tf$float32))
-}
 
 #' Mivae initialisation
 mivae_init<-function(encoder_structure,decoder_structure,
@@ -113,7 +95,7 @@ mivae_output<-function(act,x,network_weights,feed_size,n_h,encoder_structure,dec
   # Draw one sample z from Gaussian distribution
   #feed_size=batch_size
   #eps = tf$random_normal(shape(feed_size, n_h), 0, tf$sqrt(tf$exp(z_log_sigma_sq)), dtype=tf$float32)
-  eps = tf$random_normal(shape(feed_size, n_h), 0, 1, dtype=tf$float32)
+  eps = tf$random$normal(shape(feed_size, n_h), 0, 1, dtype=tf$float32)
   #eps = tf$random_normal(shape(n_h), 0, 1, dtype=tf$float32)
   # z = mu + sigma*epsilon
   #z = tf$add(z_mean, tf$multiply(tf$sqrt(tf$exp(z_log_sigma_sq)), eps))

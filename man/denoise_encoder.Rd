@@ -9,8 +9,8 @@ denoise_encoder(
   x,
   weights,
   biases,
-  input_keep,
-  hidden_keep,
+  input_drop,
+  hidden_drop,
   encoder_structure
 )
 }

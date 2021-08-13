@@ -10,8 +10,8 @@ midae_output(
   network_weights,
   encoder_structure,
   decoder_structure,
-  input_keep,
-  hidden_keep
+  input_drop,
+  hidden_drop
 )
 }
 \description{
