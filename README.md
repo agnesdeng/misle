@@ -53,7 +53,7 @@ library(mixgb)
 ```
 ## Example: multiple imputation through Denoising autoencoder
 ```r
-#a dataframe (consists of numeric/binary/multicalss variables) with NAs
+#a data frame (consists of numeric/binary/multicalss variables) with NAs
 withNA.df=createNA(adult,p=0.3)
 
 #create a variational autoencoder imputer with your choice of settings or leave it as default
@@ -70,7 +70,7 @@ imputed.data[[2]]
 ```
 ## Example: multiple imputation through Variational autoencoder
 ```r
-#a dataframe (consists of  numeric/binary/multicalss variables) with NAs
+#a data frame (consists of  numeric/binary/multicalss variables) with NAs
 withNA.df=createNA(adult,p=0.3)
 
 #create a variational autoencoder imputer with your choice of settings or leave it as default
@@ -102,7 +102,7 @@ withNA.df<-createNA(NHANES,p=0.3)
 
 Create an Mixgb imputer with your choice of settings or leave it as default.
 
-Note that users do not need to convert the dataframe into one-hot coding themselves. Ths imputer will convert it automatically for you. The type of variables should be one of the following: numeric, integer, or factor (binary/multiclass). 
+Note that users do not need to convert the data frame into dgCMatrix or one-hot coding themselves. Ths imputer will convert it automatically for you. The type of variables should be one of the following: numeric, integer, or factor (binary/multiclass).
 ``` r
 MIXGB<-Mixgb$new(withNA.df,pmm.type="auto",pmm.k = 5)
 ```
