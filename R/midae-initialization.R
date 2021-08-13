@@ -72,11 +72,6 @@ midae_init<-function(encoder_structure,decoder_structure,
 
 
 
-weights=network_weights[["encoder_weights"]]
-biases=network_weights[["encoder_biases"]]
-input_drop
-hidden_drop
-encoder_structure
 
 #' Midae Encoder update function
 denoise_encoder<-function(act,x,weights, biases,input_drop,hidden_drop,encoder_structure){
