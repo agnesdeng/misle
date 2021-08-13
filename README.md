@@ -19,21 +19,30 @@ The R package `misle` is built using TensorFlow™, which enables fast numerical
 
 ## Install `misle` (It may have compatibility issues with python version/tensorflow version) 
 
-The current version of `misle` can be installed from GitHub as follows:
+Our package  `misle`  is built using `tensorflow`.  If P package  `tensorflow`  has been properly installed, users can directly install the newest version of  `misle`  from GitHub.
 
 ``` r
 devtools::install_github("agnesdeng/misle")
+library(misle)
 ```
-Similar to the `keras` R package, we have a function `install_misle()` to ensure that tensorflow would be installed as required. 
+
+If  `tensorflow` has not been installed, we recommend to use virtual environment to install it.
 
 ``` r
-library(misle)
-install_misle()
-```
+library(reticulate)
 
-Usually after these two steps, everything would be fine for Linux & Mac. If the imputer can't set up and returns error, it may be the case that the `tensorflow` was not loaded. So the following would help: 
-```r
+#By default, python package tensorflow would be installed in the virtual environment named 'r-reticulate' 
+virtualenv_install(packages = c("tensorflow==1.14.0"))
+
+#Install tensorflow R package
+install.packages("tensorflow")
 library(tensorflow)
+install_tensorflow(method="virtualenv",version="1.14.0",envname = "r-reticulate")
+
+#Install misle 
+devtools::install_github("agnesdeng/misle")
+library(misle)
+
 ```
 
 ## Install `mixgb` (Highly recommend)
@@ -42,6 +51,41 @@ If users only want to use multiple imputation through XGBoost, please install th
 devtools::install_github("agnesdeng/mixgb")
 library(mixgb)
 ```
+## Example: multiple imputation through Denoising autoencoder
+```r
+#a dataframe (consists of numeric/binary/multicalss variables) with NAs
+withNA.df=createNA(adult,p=0.3)
+
+#create a variational autoencoder imputer with your choice of settings or leave it as default
+MIDAE=Midae$new(withNA.df,iteration=20,input_drop=0.2,hidden_drop=0.3,n_h=4L)
+
+#training
+MIDAE$train()
+
+#impute m datasets
+imputed.data=MIDAE$impute(m = 5)
+
+#the 2nd imputed dataset
+imputed.data[[2]]
+```
+## Example: multiple imputation through Variational autoencoder
+```r
+#a dataframe (consists of  numeric/binary/multicalss variables) with NAs
+withNA.df=createNA(adult,p=0.3)
+
+#create a variational autoencoder imputer with your choice of settings or leave it as default
+MIVAE=Mivae$new(withNA.df,iteration=20,input_drop=0.2,hidden_drop=0.3,n_h=4L)
+
+#training
+MIVAE$train()
+
+#impute m datasets
+imputed.data=MIVAE$impute(m = 5)
+
+#the 2nd imputed dataset
+imputed.data[[2]]
+```
+
 ## Example: multiple imputation through XGBoost
 
 We first load the NHANES dataset from the R package "hexbin".
@@ -52,10 +96,13 @@ data("NHANES")
 
 Create 30% MCAR missing data.
 ``` r
+#a dataframe (consists of numeric/binary/multicalss variables) with NAs
 withNA.df<-createNA(NHANES,p=0.3)
 ```
 
 Create an Mixgb imputer with your choice of settings or leave it as default.
+
+Note that users do not need to convert the dataframe into one-hot coding themselves. Ths imputer will convert it automatically for you. The type of variables should be one of the following: numeric, integer, or factor (binary/multiclass). 
 ``` r
 MIXGB<-Mixgb$new(withNA.df,pmm.type="auto",pmm.k = 5)
 ```
