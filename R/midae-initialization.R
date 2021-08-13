@@ -77,11 +77,11 @@ midae_init<-function(encoder_structure,decoder_structure,
 denoise_encoder<-function(act,x,weights, biases,input_drop,hidden_drop,encoder_structure){
   tf <- tensorflow::tf
   tf$compat$v1$disable_eager_execution()
-  x<-act(tf$add(tf$matmul(tf$nn$dropout(x,input_drop), weights[[1]]), biases[[1]]))
+  x<-act(tf$add(tf$matmul(tf$nn$dropout(x,rate=input_drop), weights[[1]]), biases[[1]]))
   E=length(encoder_structure)
   if(E>1){
     for(n in 2:E){
-      x<-act(tf$add(tf$matmul(tf$nn$dropout(x,hidden_drop), weights[[n]]), biases[[n]]))
+      x<-act(tf$add(tf$matmul(tf$nn$dropout(x,rate=hidden_drop), weights[[n]]), biases[[n]]))
     }
   }
   z_mean = act(tf$add(tf$matmul(x, weights[['out_mean']]), biases[['out_mean']]))
@@ -97,12 +97,12 @@ denoise_decoder<-function(act,z, weights, biases, hidden_drop,decoder_structure)
   tf$compat$v1$disable_eager_execution()
   D=length(decoder_structure)
   for(n in 1:D){
-    z<-act(tf$add(tf$matmul(tf$nn$dropout(z,hidden_drop), weights[[n]]), biases[[n]]))
+    z<-act(tf$add(tf$matmul(tf$nn$dropout(z,rate=hidden_drop), weights[[n]]), biases[[n]]))
   }
 
-  x_reconstr_mean<-tf$add(tf$matmul(tf$nn$dropout(z,hidden_drop), weights[['out_mean']]), biases[['out_mean']])
+  x_reconstr_mean<-tf$add(tf$matmul(tf$nn$dropout(z,rate=hidden_drop), weights[['out_mean']]), biases[['out_mean']])
   #x_reconstr_logvar<-tf$nn$sigmoid(tf$add(tf$matmul(z, weights[['out_logvar']]), biases[['out_logvar']]))
-  x_reconstr_logvar<-tf$add(tf$matmul(tf$nn$dropout(z,hidden_drop), weights[['out_logvar']]), biases[['out_logvar']])
+  x_reconstr_logvar<-tf$add(tf$matmul(tf$nn$dropout(z,rate=hidden_drop), weights[['out_logvar']]), biases[['out_logvar']])
   #x_reconstr_mean<-tf$add(tf$matmul(z, weights[['out_mean']]), biases[['out_mean']])
   #return(x_reconstr_mean)
   return(list("x_reconstr_mean"=x_reconstr_mean, "x_reconstr_logvar"=x_reconstr_logvar))
