@@ -1,6 +1,6 @@
-#' R6 class for Midae imputer
+#' R6 class for Midae bootstrapping imputer
 #' @docType  class
-#' @description Set up a Midae imputer object with specified hyperparameters and then obtain multiple imputed datasets
+#' @description Set up a Midae (with bootstrapping) imputer object with specified hyperparameters and then obtain multiple imputed datasets
 #' @format  NULL
 #' @import tensorflow
 #' @export
@@ -9,8 +9,7 @@
 
 
 
-
-Midae<- R6::R6Class("Midae",
+Midae.boot<- R6::R6Class("Midae.boot",
                      public = list(
                        #input_size
                        n_input =NULL,
@@ -40,7 +39,6 @@ Midae<- R6::R6Class("Midae",
                        output_split=NULL,
                        data=NULL,
                        onehot.df=NULL,
-                       bootstrap.df=NULL,
                        columns_list=NULL,
                        act=NULL,
                        weight_decay=NULL,
@@ -76,7 +74,6 @@ Midae<- R6::R6Class("Midae",
                          self$n_input<- as.integer(n_input)
                          self$n_h <- as.integer(n_h)
                          self$encoder_structure <- as.integer(encoder_structure)
-
                          if(decoder_structure == "reversed"){
                            self$decoder_structure <-as.integer(rev(encoder_structure))
                          }else{
@@ -129,54 +126,66 @@ Midae<- R6::R6Class("Midae",
                            }
 
 
-                           self$saver=tf$compat$v1$train$Saver()
+                           self$saver=tf$compat$v1$train$Saver(max_to_keep = NULL)
                          })
                        },
 
-                       train=function(verbose=TRUE,print_freq=1){
+                       train=function(verbose=TRUE,print_freq=1,m=5){
                          tf <- tensorflow::tf
                          tf$compat$v1$disable_v2_behavior()
                          data=self$onehot.df
 
+                         for(j in 1:m){
+                           Nrow=nrow(data)
+                           index=sample(Nrow,Nrow,replace=TRUE)
+                           Boot.data=data[index,]
 
-                         #scale data and get colmin and colmax
-                         scaled.obj=minmax_scaler(data)
-                         scaled.mat<-scaled.obj$minmax.df
-                         #mark the location of nonmising values (not NA)
-                         notna_loc<-!is.na(data)
-                         idx <- which(is.na(data))
-                         scaled.mat[idx]<-0
+                           #scale data and get colmin and colmax
+                           scaled.obj=minmax_scaler(Boot.data)
+                           scaled.mat<-scaled.obj$minmax.df
+                           #mark the location of nonmising values (not NA)
+                           notna_loc<-!is.na(Boot.data)
+                           idx <- which(is.na(Boot.data))
+                           scaled.mat[idx]<-0
 
-                         with(tf$compat$v1$Session(graph=self$vae_graph) %as% sess,{
-                           sess$run(tf$compat$v1$global_variables_initializer())
-                           num_batch=(nrow(scaled.mat) %/% (self$batch_size))
-                           batchset=batch_iter(scaled.mat,self$batch_size)
+                           with(tf$compat$v1$Session(graph=self$vae_graph) %as% sess,{
+                             sess$run(tf$compat$v1$global_variables_initializer())
+                             num_batch=(nrow(scaled.mat) %/% (self$batch_size))
+                             batchset=batch_iter(scaled.mat,self$batch_size)
 
-                           for(k in 1:self$iteration){
-                             current_loss<-0
-                             for(i in 1:num_batch){
-                               b<-batchset[[i]]
-                               x<-self$x
-                               na_idx<-self$na_idx
-                               batch_train<-sess$run(list(self$cost,self$optimizer),feed_dict = dict(x=scaled.mat[b,],na_idx=notna_loc[b,]))
-                               current_loss<-current_loss+batch_train[[1]]
+                             for(k in 1:self$iteration){
+                               current_loss<-0
+                               for(i in 1:num_batch){
+                                 b<-batchset[[i]]
+                                 x<-self$x
+                                 na_idx<-self$na_idx
+                                 batch_train<-sess$run(list(self$cost,self$optimizer),feed_dict = dict(x=scaled.mat[b,],na_idx=notna_loc[b,]))
+                                 current_loss<-current_loss+batch_train[[1]]
 
-                             }
-                             current_loss<-current_loss/num_batch
-
-                             if(verbose==TRUE){
-                               if (k %% print_freq == 0){
-                                 cat("Iteration - ", k, "Current Loss - ", current_loss,"\n")
-                                 #self$saver$save(sess,"Temp/Midae.ckpt")
                                }
+                               current_loss<-current_loss/num_batch
+
+                               if(verbose==TRUE){
+                                 if (k %% print_freq == 0){
+                                   cat("Iteration - ", k, "Current Loss - ", current_loss,"\n")
+                                   #dir.path=paste(paste("Temp/Midae",j,sep=""),".ckpt",sep="")
+                                   #self$saver$save(sess,dir.path)
+                                 }
+                               }
+
+
+
                              }
 
+                             dir.path=paste(paste("Temp/Midaeboot",j,sep=""),".ckpt",sep="")
+                             self$saver$save(sess,dir.path)
+                           })
 
 
-                           }
+                         }
 
-                           self$saver$save(sess,"Temp/Midae.ckpt")
-                         })
+
+
                        },
 
 
@@ -193,39 +202,31 @@ Midae<- R6::R6Class("Midae",
                          notna_loc<-!is.na(data)
                          idx <- which(is.na(data))
                          scaled.mat[idx]<-0
-                         with(tf$compat$v1$Session(graph=self$vae_graph) %as% sess,{
-                           sess$run(tf$compat$v1$global_variables_initializer())
-                           self$saver$restore(sess,"Temp/Midae.ckpt")
-                           x <- self$x
-                           imputed.data<-list()
-                           onehot.data<-list()
-                           if(pmm){
-                              #future work..hasn't finished yet
-                             for(i in 1:m){
-                               output.list<-sess$run(self$output_op, feed_dict = dict(x=scaled.mat))
-                               output.mat<-matrix(unlist(output.list),ncol=self$n_input)
-                               temp<-inv.minmax_data(output.mat,colmin,colmax)
-                               onehot.data[[i]]=temp
-                               onehot.data[[i]]=as.matrix(onehot.data[[i]],ncol=self$n_input)
-                               colnames(onehot.data[[i]])=colnames(data)
-                             }
 
-                           }else{
-                             for(i in 1:m){
-                               output.list<-sess$run(self$output_op, feed_dict = dict(x=scaled.mat))
-                               output.mat<-matrix(unlist(output.list),ncol=self$n_input)
-                               temp<-inv.minmax_data(output.mat,colmin,colmax)
-                               onehot.data[[i]]=as.matrix(data)
-                               onehot.data[[i]][!notna_loc]<-temp[!notna_loc]
-                               onehot.data[[i]]=as.matrix(onehot.data[[i]],ncol=self$n_input)
-                               colnames(onehot.data[[i]])=colnames(data)
-                             }
+                         imputed.data<-list()
+                         onehot.data<-list()
 
-                           }
+                         for(i in 1:m){
+                           #dir.path=paste(paste("Temp/Midae",j,sep=""),".ckpt",sep="")
+                           #self$saver$save(sess,dir.path)
+                           with(tf$compat$v1$Session(graph=self$vae_graph) %as% sess,{
+                             sess$run(tf$compat$v1$global_variables_initializer())
+                             restore.path=paste(paste("Temp/Midaeboot",i,sep=""),".ckpt",sep="")
+                             self$saver$restore(sess,restore.path)
+                             x <- self$x
+
+                             output.list<-sess$run(self$output_op, feed_dict = dict(x=scaled.mat))
+                             output.mat<-matrix(unlist(output.list),ncol=self$n_input)
+                             temp<-inv.minmax_data(output.mat,colmin,colmax)
+                             onehot.data[[i]]=as.matrix(data)
+                             onehot.data[[i]][!notna_loc]<-temp[!notna_loc]
+                             onehot.data[[i]]=as.matrix(onehot.data[[i]],ncol=self$n_input)
+                             colnames(onehot.data[[i]])=colnames(data)
 
 
+                           })
+                         }
 
-                         })
 
                          if(add.noise){
                            onehot.data=lapply(onehot.data,function(x) x+rnorm(nrow(self$data*self$n_input),0,sd=SD))

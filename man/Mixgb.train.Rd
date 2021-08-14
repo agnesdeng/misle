@@ -4,16 +4,8 @@
 \name{Mixgb.train}
 \alias{Mixgb.train}
 \title{Multiple imputation through xgboost R6 class imputer object for training set}
-\format{
-An [R6Class] mixgb.train imputer object
-}
-\value{
-An [Mixgb.train] imputer
-}
 \description{
-Multiple imputation through xgboost R6 class imputer object for training set
-
-Multiple imputation through xgboost R6 class imputer object for training set
+Set up an xgboost imputer object with specified hyperparameters and then obtain an imputed object including multiple imputed datasets, saved models and parameters.
 }
 \examples{
 
@@ -21,56 +13,15 @@ Multiple imputation through xgboost R6 class imputer object for training set
 ## Method `Mixgb.train$new`
 ## ------------------------------------------------
 
-MIXGB=Mixgb$new(withNA.df)
-MIXGB=Mixgb$new(withNA.df,nrounds=50,max_depth=6)
+MIXGB=Mixgb.train$new(withNA.df)
+MIXGB=Mixgb.train$new(withNA.df,nrounds=50,max_depth=6)
 
 ## ------------------------------------------------
 ## Method `Mixgb.train$impute`
 ## ------------------------------------------------
 
-MIXGB=Mixgb$new(withNA.df)
-imputation.list=MIXGB$impute(m = 5)
-}
-\section{Public fields}{
-\if{html}{\out{<div class="r6-fields">}}
-\describe{
-\item{\code{data}}{A data frame with missing values}
-
-\item{\code{nrounds}}{max number of boosting iterations. Default: 50}
-
-\item{\code{max_depth}}{maximum depth of the tree. Default: 6}
-
-\item{\code{gamma}}{Default: 0.1}
-
-\item{\code{eta}}{Default: 0.3}
-
-\item{\code{nthread}}{Default: 4}
-
-\item{\code{early_stopping_rounds}}{Default: 10,}
-
-\item{\code{colsample_bytree}}{Default: 1}
-
-\item{\code{min_child_weight}}{Default: 1}
-
-\item{\code{subsample}}{Default: 1}
-
-\item{\code{pmm.k}}{Default: 5}
-
-\item{\code{pmm.type}}{Default: "auto" (used to be NULL). "auto": pmm.type2 for continuous, no pmm for categorical}
-
-\item{\code{pmm.link}}{match on predictive mean of "logit" or "prob".Default: "logit"}
-
-\item{\code{scale_pos_weight}}{Default: 1}
-
-\item{\code{initial.imp}}{Default: "random"}
-
-\item{\code{print_every_n}}{Default: 10L}
-
-\item{\code{verbose}}{Default: 1}
-
-\item{\code{tree_method}}{Default: "auto"}
-}
-\if{html}{\out{</div>}}
+MIXGB=Mixgb.train$new(withNA.df)
+mixgb.obj=MIXGB$impute(m = 5)
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -102,6 +53,8 @@ Create a new \code{Mixgb} object. This is used to set up the multiple imputation
   scale_pos_weight = 1,
   initial.imp = "random",
   tree_method = "auto",
+  gpu_id = 0,
+  predictor = "auto",
   print_every_n = 10L,
   verbose = 0
 )}\if{html}{\out{</div>}}
@@ -142,6 +95,10 @@ Create a new \code{Mixgb} object. This is used to set up the multiple imputation
 
 \item{\code{tree_method}}{Default: "auto" (can set "gpu_hist" for linux)}
 
+\item{\code{gpu_id}}{Device ordinal. Default: 0}
+
+\item{\code{predictor}}{The type of predictor algorithm to use. Default: "auto" (other options: "cpu_predictor","gpu_predictor")}
+
 \item{\code{print_every_n}}{Default: 10L}
 
 \item{\code{verbose}}{Default: 1}
@@ -150,8 +107,8 @@ Create a new \code{Mixgb} object. This is used to set up the multiple imputation
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
-\preformatted{MIXGB=Mixgb$new(withNA.df)
-MIXGB=Mixgb$new(withNA.df,nrounds=50,max_depth=6)
+\preformatted{MIXGB=Mixgb.train$new(withNA.df)
+MIXGB=Mixgb.train$new(withNA.df,nrounds=50,max_depth=6)
 }
 \if{html}{\out{</div>}}
 
@@ -162,7 +119,7 @@ MIXGB=Mixgb$new(withNA.df,nrounds=50,max_depth=6)
 \if{html}{\out{<a id="method-impute"></a>}}
 \if{latex}{\out{\hypertarget{method-impute}{}}}
 \subsection{Method \code{impute()}}{
-Use the imputer to impute missing values and obtain multiple datasets
+Use the imputer to impute missing values and obtain multiple imputed datasets, saved training models and some parameters needed for future use.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Mixgb.train$impute(m = 5)}\if{html}{\out{</div>}}
 }
@@ -176,8 +133,8 @@ Use the imputer to impute missing values and obtain multiple datasets
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
-\preformatted{MIXGB=Mixgb$new(withNA.df)
-imputation.list=MIXGB$impute(m = 5)
+\preformatted{MIXGB=Mixgb.train$new(withNA.df)
+mixgb.obj=MIXGB$impute(m = 5)
 }
 \if{html}{\out{</div>}}
 

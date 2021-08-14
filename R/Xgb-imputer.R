@@ -1,32 +1,14 @@
 #' Multiple imputation through xgboost R6 class imputer object
 #' @docType  class
-#' @format  An [R6Class] mixgb imputer object
+#' @description Set up an xgboost imputer object with specified hyperparameters and then obtain multiple imputed datasets
+#' @format  NULL
 #' @import xgboost
-#' @return An [Mixgb] imputer
 #' @export
 
 Mixgb <- R6Class("Mixgb",
                    cloneable = FALSE,
 
                     public = list(
-                      #'@field data A data frame with missing values
-                      #'@field nrounds max number of boosting iterations. Default: 50
-                      #'@field max_depth maximum depth of the tree. Default: 6
-                      #'@field gamma Default: 0.1
-                      #'@field eta Default: 0.3
-                      #'@field nthread Default: 4
-                      #'@field early_stopping_rounds Default: 10,
-                      #'@field colsample_bytree Default: 1
-                      #'@field min_child_weight Default: 1
-                      #'@field subsample Default: 1
-                      #'@field pmm.k Default: 5
-                      #'@field pmm.type Default: "auto" (used to be NULL). "auto": pmm.type2 for continuous, no pmm for categorical
-                      #'@field pmm.link match on predictive mean of "logit" or "prob".Default: "logit"
-                      #'@field scale_pos_weight Default: 1
-                      #'@field initial.imp Default: "random"
-                      #'@field print_every_n Default: 10L
-                      #'@field verbose Default: 1
-                      #'@field tree_method Default: "auto"
 
                       data=NULL,
                       nrounds=NULL,
@@ -46,13 +28,16 @@ Mixgb <- R6Class("Mixgb",
                       initial.imp=NULL,
                       scale_pos_weight=NULL,
                       tree_method=NULL,
+                      gpu_id=NULL,
+                      predictor=NULL,
+
                     #'@description Create a new \code{Mixgb} object. This is used to set up the multiple imputation imputer using xgboost.
                     #'@examples
                     #'MIXGB=Mixgb$new(withNA.df)
                     #'MIXGB=Mixgb$new(withNA.df,nrounds=50,max_depth=6)
                     #'@param data A data frame with missing values
-                    #'@param nrounds max number of boosting iterations. Default: 50
-                    #'@param max_depth maximum depth of the tree. Default: 6
+                    #'@param nrounds Max number of boosting iterations. Default: 50
+                    #'@param max_depth Maximum depth of the tree. Default: 6
                     #'@param gamma Default: 0.1
                     #'@param eta Default: 0.3
                     #'@param nthread Default: 4
@@ -67,11 +52,13 @@ Mixgb <- R6Class("Mixgb",
                     #'@param print_every_n Default: 10L
                     #'@param verbose Default: 1
                     #'@param scale_pos_weight Default:1
-                    #'@param tree_method Default: "auto" (can set "gpu_hist" for linux)
+                    #'@param tree_method Default: "auto" (can set to "gpu_hist" for machine with NVIDIA GPUs)
+                    #'@param gpu_id Device ordinal. Default: 0
+                    #'@param predictor The type of predictor algorithm to use. Default: "auto" (other options: "cpu_predictor","gpu_predictor")
 
 
 
-                    initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type="auto",pmm.link="logit",scale_pos_weight=1,initial.imp="random",tree_method="auto",print_every_n = 10L,verbose=0) {
+                    initialize = function(data,nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,early_stopping_rounds=10,colsample_bytree=1,min_child_weight=1,subsample=1,pmm.k=5,pmm.type="auto",pmm.link="logit",scale_pos_weight=1,initial.imp="random",tree_method="auto",gpu_id=0,predictor="auto",print_every_n = 10L,verbose=0) {
                       self$data<-data
                       self$nrounds=nrounds
                       self$max_depth=max_depth
@@ -90,6 +77,8 @@ Mixgb <- R6Class("Mixgb",
                       self$initial.imp=initial.imp
                       self$scale_pos_weight=scale_pos_weight
                       self$tree_method=tree_method
+                      self$gpu_id=gpu_id
+                      self$predictor=predictor
 
                     },
 
@@ -205,7 +194,7 @@ Mixgb <- R6Class("Mixgb",
                                 obj.type<-"reg:squarederror"
                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                 pred.y=predict(xgb.fit,mis.data)
                                 #update dataset
                                 sorted.df[,i][na.index]<-pred.y
@@ -221,7 +210,7 @@ Mixgb <- R6Class("Mixgb",
                                     obj.type<-"binary:logistic"
                                     xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                     nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                    min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                    min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                     xgb.pred = predict(xgb.fit,mis.data)
                                     pred.y=ifelse(xgb.pred>=0.5,1,0)
@@ -244,7 +233,7 @@ Mixgb <- R6Class("Mixgb",
                                 N.class=length(levels(sorted.df[,i]))
                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, num_class=N.class,missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                 xgb.pred = predict(xgb.fit,mis.data)
                                 pred.y=levels(sorted.df[,i])[xgb.pred+1]
                                 #update dataset
@@ -281,7 +270,7 @@ Mixgb <- R6Class("Mixgb",
                                 obj.type<-"reg:squarederror"
                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                 pred.y=predict(xgb.fit,mis.data)
                                 yhatobs=predict(xgb.fit,obs.data)
                                 #update dataset
@@ -299,7 +288,7 @@ Mixgb <- R6Class("Mixgb",
                                   obj.type<-"binary:logistic"
                                   xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                   nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                  min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                  min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                   xgb.pred = predict(xgb.fit,mis.data)
                                   yhatobs=predict(xgb.fit,obs.data)
@@ -320,7 +309,7 @@ Mixgb <- R6Class("Mixgb",
                                 N.class=length(levels(sorted.df[,i]))
                                 xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, num_class=N.class,missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                 nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                 xgb.pred = predict(xgb.fit,mis.data)
                                 pred.y=levels(sorted.df[,i])[xgb.pred+1]
                                 #update dataset
@@ -382,7 +371,7 @@ Mixgb <- R6Class("Mixgb",
                                  obj.type<-"reg:squarederror"
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                  pred.y=predict(xgb.fit,mis.data)
                                  #update dataset
                                  copy[,i][na.index]<-pred.y
@@ -397,7 +386,7 @@ Mixgb <- R6Class("Mixgb",
                                    obj.type<-"binary:logistic"
                                    xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                    nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                   min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                   min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                    xgb.pred = predict(xgb.fit,mis.data)
                                    pred.y=ifelse(xgb.pred>=0.5,1,0)
@@ -420,7 +409,7 @@ Mixgb <- R6Class("Mixgb",
                                  N.class=length(levels(sorted.df[,i]))
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, num_class=N.class,missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                  xgb.pred = predict(xgb.fit,mis.data)
                                  pred.y=levels(sorted.df[,i])[xgb.pred+1]
                                  #update dataset
@@ -468,7 +457,7 @@ Mixgb <- R6Class("Mixgb",
                                obj.type<-"reg:squarederror"
                                xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                               min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                               min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                yhatobs=predict(xgb.fit,obs.data)
                                #update dataset
@@ -489,7 +478,7 @@ Mixgb <- R6Class("Mixgb",
 
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                  xgb.pred = predict(xgb.fit,obs.data)
                                  yhatobs.list[[i]]=xgb.pred
 
@@ -506,7 +495,7 @@ Mixgb <- R6Class("Mixgb",
                                N.class=length(levels(sorted.df[,i]))
                                xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, num_class=N.class,missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                               min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                               min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                xgb.pred = predict(xgb.fit,obs.data,reshape = T)
 
                                if(self$pmm.link=="logit"){
@@ -558,7 +547,7 @@ Mixgb <- R6Class("Mixgb",
                                  obj.type<-"reg:squarederror"
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                  pred.y=predict(xgb.fit,mis.data)
                                  #update dataset
                                  #copy[,i][na.index]<-pred.y
@@ -583,7 +572,7 @@ Mixgb <- R6Class("Mixgb",
 
                                    xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                    nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                   min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                   min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                    xgb.pred = predict(xgb.fit,mis.data)
 
@@ -606,7 +595,7 @@ Mixgb <- R6Class("Mixgb",
                                  N.class=length(levels(sorted.df[,i]))
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, num_class=N.class,missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                  xgb.pred= predict(xgb.fit,mis.data,reshape = T)
 
                                  if(self$pmm.link=="logit"){
@@ -686,7 +675,7 @@ Mixgb <- R6Class("Mixgb",
                                  obj.type<-"reg:squarederror"
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                  pred.y=predict(xgb.fit,mis.data)
                                  ###use boostrap observed data to fit model
                                  #use this model to predict all missing whole data and match with all observed whole data
@@ -710,7 +699,7 @@ Mixgb <- R6Class("Mixgb",
                                    }
                                    xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                    nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                   min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                   min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                    xgb.pred = predict(xgb.fit,mis.data)
 
@@ -737,7 +726,7 @@ Mixgb <- R6Class("Mixgb",
                                  N.class=length(levels(sorted.df[,i]))
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, num_class=N.class,missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                  xgb.pred = predict(xgb.fit,mis.data,reshape = T)
 
                                  yhatObs=predict(xgb.fit,Obs.data,reshape = T)
@@ -824,7 +813,7 @@ Mixgb <- R6Class("Mixgb",
                                  obj.type<-"reg:squarederror"
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                  pred.y=predict(xgb.fit,mis.data)
                                  ###use boostrap observed data to fit model
                                  #use this model to predict all missing whole data and match with all observed whole data
@@ -853,7 +842,7 @@ Mixgb <- R6Class("Mixgb",
 
                                    xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                    nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                   min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                   min_child_weight=self$min_child_weight,subsample=self$subsample,scale_pos_weight=self$scale_pos_weight,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
 
                                    xgb.pred = predict(xgb.fit,mis.data)
                                    pred.y=ifelse(xgb.pred>=0.5,1,0)
@@ -888,7 +877,7 @@ Mixgb <- R6Class("Mixgb",
                                  N.class=length(levels(sorted.df[,i]))
                                  xgb.fit=xgboost(data=obs.data,label = obs.y,objective = obj.type, num_class=N.class,missing = NA, weight = NULL,nthread=self$nthread,early_stopping_rounds=self$early_stopping_rounds,
                                                  nrounds=self$nrounds, max_depth=self$max_depth,gamma=self$gamma,eta=self$eta,colsample_bytree=self$colsample_bytree,
-                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method,verbose = self$verbose, print_every_n = self$print_every_n)
+                                                 min_child_weight=self$min_child_weight,subsample=self$subsample,tree_method=self$tree_method, gpu_id=self$gpu_id, predictor=self$predictor,verbose = self$verbose, print_every_n = self$print_every_n)
                                  xgb.pred = predict(xgb.fit,mis.data)
                                  #update dataset
                                  copy[,i][na.index]<-levels(sorted.df[,i])[xgb.pred+1]
