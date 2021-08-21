@@ -2,6 +2,7 @@
 
 export(Midae)
 export(Midae.boot)
+export(Midae.boot2)
 export(Mivae)
 export(Mixgb)
 export(Mixgb.train)
