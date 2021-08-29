@@ -9,12 +9,27 @@ The R package `misle` is built using TensorFlow™, which enables fast numerical
 `misle` is still at the early stage of development so lots of work have to be done before it is officially released. 
 
 ## Current version
+1. **multiple imputation by XGboost**
+2. **multiple imputation by variational autoencoders**
+3. **multiple imputation by denoising autoencoders(with dropout)**
 
-- **multiple imputation by XGboost**
+
+## Recent updates and added features
+- ** Mixgb imputer with GPU support.
+- ** Tensorflow 2 compatible.
+- ** Imputation models can be saved to impute new unseen data.
+- ** Fixed bugs related to impute.new( ) function for mixgb imputer.
+- ** A data cleaning function for users to roughly check their data before feeding in an imputer.
+- ** Added several error and warning messages related to user errors.
+
 
 ## Under development 
-- **multiple imputation by variational autoencoders**
-- **multiple imputation by denoising autoencoders(with dropout)**
+- ** Migrate TensorFlow 1 code to TensorFlow 2
+- ** Writing up documentation and vignette
+- ** Pretune hyperparamters for imputers
+- ** Diagnostic plots for imputation results
+
+
 
 
 ## Install `misle` (It may have compatibility issues with python version/tensorflow version) 

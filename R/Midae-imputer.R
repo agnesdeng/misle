@@ -249,6 +249,76 @@ Midae<- R6::R6Class("Midae",
                            return(imputed.data)
                          }
 
+                       },
+                       impute.new=function(newdata=data,m=5,onehot=FALSE,all.numeric=FALSE,pmm=FALSE){
+                         tf <- tensorflow::tf
+
+                         Out<-output_structure(newdata)
+                         onehot.df<-Out$onehot.df
+                         data=onehot.df
+                         #scale data and get colmin and colmax
+                         scaled.obj=minmax_scaler(data)
+                         scaled.mat<-scaled.obj$minmax.df
+                         scaled.df <-as.data.frame(scaled.mat)
+                         colmin<-scaled.obj$colmin
+                         colmax<-scaled.obj$colmax
+                         #mark the location of nonmising values (not NA)
+                         notna_loc<-!is.na(data)
+                         idx <- which(is.na(data))
+                         scaled.mat[idx]<-0
+                         with(tf$compat$v1$Session(graph=self$vae_graph) %as% sess,{
+                           sess$run(tf$compat$v1$global_variables_initializer())
+                           self$saver$restore(sess,"Temp/Midae.ckpt")
+                           x <- self$x
+                           imputed.data<-list()
+                           onehot.data<-list()
+                           if(pmm){
+                             #future work..hasn't finished yet
+                             for(i in 1:m){
+                               output.list<-sess$run(self$output_op, feed_dict = dict(x=scaled.mat))
+                               output.mat<-matrix(unlist(output.list),ncol=self$n_input)
+                               temp<-inv.minmax_data(output.mat,colmin,colmax)
+                               onehot.data[[i]]=temp
+                               onehot.data[[i]]=as.matrix(onehot.data[[i]],ncol=self$n_input)
+                               colnames(onehot.data[[i]])=colnames(data)
+                             }
+
+                           }else{
+                             for(i in 1:m){
+                               output.list<-sess$run(self$output_op, feed_dict = dict(x=scaled.mat))
+                               output.mat<-matrix(unlist(output.list),ncol=self$n_input)
+                               temp<-inv.minmax_data(output.mat,colmin,colmax)
+                               onehot.data[[i]]=as.matrix(data)
+                               onehot.data[[i]][!notna_loc]<-temp[!notna_loc]
+                               onehot.data[[i]]=as.matrix(onehot.data[[i]],ncol=self$n_input)
+                               colnames(onehot.data[[i]])=colnames(data)
+                             }
+
+                           }
+
+
+
+                         })
+
+
+
+
+
+                         if(all.numeric){
+
+                           return(lapply(onehot.data,as.data.frame))
+
+
+                         }else if(onehot){
+                           return(onehot.data)
+                         }
+                         else{
+                           for(i in 1:m){
+                             imputed.data[[i]]<-inverse_onehot(onehot.data[[i]],newdata,columns_list=self$columns_list)
+                           }
+                           return(imputed.data)
+                         }
+
                        }
 
 

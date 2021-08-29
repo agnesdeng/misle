@@ -8,7 +8,6 @@ mivae_output(
   act,
   x,
   network_weights,
-  feed_size,
   n_h,
   encoder_structure,
   decoder_structure

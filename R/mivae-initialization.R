@@ -72,40 +72,32 @@ vae_decoder<-function(act,z, weights, biases,decoder_structure){
   for(n in 1:D){
     z<-act(tf$add(tf$matmul(z, weights[[n]]), biases[[n]]))
   }
-   #x_reconstr_mean<-tf$nn$sigmoid(tf$add(tf$matmul(z, weights[['out_mean']]), biases[['out_mean']]))
-   #x_reconstr_logvar<-tf$nn$sigmoid(tf$add(tf$matmul(z, weights[['out_logvar']]), biases[['out_logvar']]))
-   #x_reconstr_mean<-tf$clip_by_value(tf$add(tf$matmul(z, weights[['out_mean']]), biases[['out_mean']]),0,1)
+
    x_reconstr_mean<-tf$add(tf$matmul(z, weights[['out_mean']]), biases[['out_mean']])
    x_reconstr_logvar<-tf$add(tf$matmul(z, weights[['out_logvar']]), biases[['out_logvar']])
 
-
-   #x_reconstr_mean<-tf$add(tf$matmul(z, weights[['out_mean']]), biases[['out_mean']])
-  #return(x_reconstr_mean)
    return(list("x_reconstr_mean"=x_reconstr_mean, "x_reconstr_logvar"=x_reconstr_logvar))
 }
 
 #' Mivae output evaluation
-mivae_output<-function(act,x,network_weights,feed_size,n_h,encoder_structure,decoder_structure){
+mivae_output<-function(act,x,network_weights,n_h,encoder_structure,decoder_structure){
   tf <- tensorflow::tf
 
   LatentParameter<-vae_encoder(act,x, network_weights[["encoder_weights"]], network_weights[["encoder_biases"]],encoder_structure)
   z_mean<-LatentParameter$z_mean
   z_log_sigma_sq <-LatentParameter$z_log_sigma_sq
 
-  # Draw one sample z from Gaussian distribution
-  #feed_size=batch_size
-  #eps = tf$random_normal(shape(feed_size, n_h), 0, tf$sqrt(tf$exp(z_log_sigma_sq)), dtype=tf$float32)
-  eps = tf$random$normal(shape(feed_size, n_h), 0, 1, dtype=tf$float32)
-  #eps = tf$random_normal(shape(n_h), 0, 1, dtype=tf$float32)
-  # z = mu + sigma*epsilon
-  #z = tf$add(z_mean, tf$multiply(tf$sqrt(tf$exp(z_log_sigma_sq)), eps))
+
+  eps = tf$random$normal(tf$shape(z_log_sigma_sq), mean=0, stddev=1, dtype=tf$float32)
+
   z = tf$add(z_mean, tf$multiply(tf$exp(z_log_sigma_sq/2), eps))
 
   Out<- vae_decoder(act,z, network_weights[["decoder_weights"]], network_weights[["decoder_biases"]],decoder_structure)
-  #x_reconstr_mean<-Out$x_reconstr_logvar
   x_reconstr_mean<-Out$x_reconstr_mean
   x_reconstr_logvar<-Out$x_reconstr_logvar
   return(list("x_reconstr_mean"=x_reconstr_mean, "x_reconstr_logvar"=x_reconstr_logvar,"z_log_sigma_sq"=z_log_sigma_sq, "z_mean"=z_mean,"z"=z))
 }
+
+
 
 

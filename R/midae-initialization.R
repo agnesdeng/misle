@@ -101,10 +101,9 @@ denoise_decoder<-function(act,z, weights, biases, hidden_drop,decoder_structure)
   }
 
   x_reconstr_mean<-tf$add(tf$matmul(tf$nn$dropout(z,rate=hidden_drop), weights[['out_mean']]), biases[['out_mean']])
-  #x_reconstr_logvar<-tf$nn$sigmoid(tf$add(tf$matmul(z, weights[['out_logvar']]), biases[['out_logvar']]))
+
   x_reconstr_logvar<-tf$add(tf$matmul(tf$nn$dropout(z,rate=hidden_drop), weights[['out_logvar']]), biases[['out_logvar']])
-  #x_reconstr_mean<-tf$add(tf$matmul(z, weights[['out_mean']]), biases[['out_mean']])
-  #return(x_reconstr_mean)
+
   return(list("x_reconstr_mean"=x_reconstr_mean, "x_reconstr_logvar"=x_reconstr_logvar))
 
   return(x_reconstr_mean)

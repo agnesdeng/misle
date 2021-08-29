@@ -24,6 +24,7 @@ R6 class for Mivae imputer
 \item \href{#method-new}{\code{Mivae$new()}}
 \item \href{#method-train}{\code{Mivae$train()}}
 \item \href{#method-impute}{\code{Mivae$impute()}}
+\item \href{#method-impute.new}{\code{Mivae$impute.new()}}
 \item \href{#method-clone}{\code{Mivae$clone()}}
 }
 }
@@ -74,8 +75,22 @@ R6 class for Mivae imputer
   all.numeric = FALSE,
   add.noise = FALSE,
   SD = 1,
-  pmm = FALSE,
-  pmm.k = 3
+  pmm = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-impute.new"></a>}}
+\if{latex}{\out{\hypertarget{method-impute.new}{}}}
+\subsection{Method \code{impute.new()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Mivae$impute.new(
+  newdata = data,
+  m = 5,
+  onehot = FALSE,
+  all.numeric = FALSE,
+  pmm = FALSE
 )}\if{html}{\out{</div>}}
 }
 

@@ -13,6 +13,7 @@ Set up a Midae imputer object with specified hyperparameters and then obtain mul
 \item \href{#method-new}{\code{Midae$new()}}
 \item \href{#method-train}{\code{Midae$train()}}
 \item \href{#method-impute}{\code{Midae$impute()}}
+\item \href{#method-impute.new}{\code{Midae$impute.new()}}
 \item \href{#method-clone}{\code{Midae$clone()}}
 }
 }
@@ -62,6 +63,21 @@ Set up a Midae imputer object with specified hyperparameters and then obtain mul
   all.numeric = FALSE,
   add.noise = FALSE,
   SD = 1,
+  pmm = FALSE
+)}\if{html}{\out{</div>}}
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-impute.new"></a>}}
+\if{latex}{\out{\hypertarget{method-impute.new}{}}}
+\subsection{Method \code{impute.new()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Midae$impute.new(
+  newdata = data,
+  m = 5,
+  onehot = FALSE,
+  all.numeric = FALSE,
   pmm = FALSE
 )}\if{html}{\out{</div>}}
 }

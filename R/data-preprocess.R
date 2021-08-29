@@ -130,7 +130,7 @@ output_structure=function(data,columns_list=NULL,binary=NULL,multiclass=NULL,uns
         size_index <- append(size_index,chunk)
       }
 
-    } else {
+    }else{
       size_index <- append(size_index,multiclass)
     }
     multiclass_exists <-TRUE
