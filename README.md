@@ -15,19 +15,20 @@ The R package `misle` is built using TensorFlow™, which enables fast numerical
 
 
 ## Recent updates and added features
-- ** Mixgb imputer with GPU support.
-- ** Tensorflow 2 compatible.
-- ** Imputation models can be saved to impute new unseen data.
-- ** Fixed bugs related to impute.new( ) function for mixgb imputer.
-- ** A data cleaning function for users to roughly check their data before feeding in an imputer.
-- ** Added several error and warning messages related to user errors.
+- Mixgb imputer with GPU support.
+- Tensorflow 2 compatible.
+- Imputation models can be saved to impute new unseen data.
+- Fixed bugs related to impute.new( ) function for mixgb imputer.
+- A data cleaning function for users to roughly check their data before feeding in an imputer.
+- Added several error and warning messages related to user errors for mixgb.
 
 
 ## Under development 
-- ** Migrate TensorFlow 1 code to TensorFlow 2
-- ** Writing up documentation and vignette
-- ** Pretune hyperparamters for imputers
-- ** Diagnostic plots for imputation results
+- Fixing bugs and add warning messages user errors for midae and mivae.
+- Migrate TensorFlow 1 code to TensorFlow 2
+- Writing up documentation and vignette
+- Pretune hyperparamters for imputers
+- Visual diagnostic for imputation results
 
 
 
@@ -62,6 +63,8 @@ library(misle)
 
 ## Install `mixgb` (Highly recommend)
 If users only want to use multiple imputation through XGBoost, please install this simplified R package `mixgb` instead.
+
+
 ```r
 devtools::install_github("agnesdeng/mixgb")
 library(mixgb)
@@ -83,6 +86,31 @@ imputed.data=MIDAE$impute(m = 5)
 #the 2nd imputed dataset
 imputed.data[[2]]
 ```
+### Impute new unseen data using Midae
+
+```r
+n=nrow(adult)
+idx=sample(1:n, size = round(0.7*n), replace=FALSE)
+
+train.df=adult[idx,]
+test.df=adult[-idx,]
+
+trainNA.df=createNA(train.df,p=0.3)
+testNA.df=createNA(test.df,p=0.3)
+
+#use training data to train the models
+MIDAE<-Midae$new(trainNA.df,n_h=4L,iteration = 20,batch_size = 500)
+MIDAE$train()
+
+#obtain 5 imputed datasets for training data
+imputed.data=MIDAE$impute(m = 5)
+
+#use this imputer to impute test data 
+imputed.new=MIDAE$impute.new(newdata=testNA.df,m = 5)
+
+```
+
+
 ## Example: multiple imputation through Variational autoencoder
 ```r
 #a data frame (consists of  numeric/binary/multicalss variables) with NAs
@@ -99,6 +127,30 @@ imputed.data=MIVAE$impute(m = 5)
 
 #the 2nd imputed dataset
 imputed.data[[2]]
+```
+
+### Impute new unseen data using Mivae
+
+```r
+n=nrow(adult)
+idx=sample(1:n, size = round(0.7*n), replace=FALSE)
+
+train.df=adult[idx,]
+test.df=adult[-idx,]
+
+trainNA.df=createNA(train.df,p=0.3)
+testNA.df=createNA(test.df,p=0.3)
+
+#use training data to train the models
+MIVAE<-Mivae$new(trainNA.df,n_h=4L,iteration = 20,batch_size = 500)
+MIVAE$train()
+
+#obtain 5 imputed datasets for training data
+imputed.data=MIVAE$impute(m = 5)
+
+#use this imputer to impute test data 
+imputed.new=MIVAE$impute.new(newdata=testNA.df,m = 5)
+
 ```
 
 ## Example: multiple imputation through XGBoost
@@ -127,7 +179,7 @@ Use this imputer to obtain m imputed datasets.
 mixgb.data<-MIXGB$impute(m=5)
 ``` 
 
-## Example: impute new unseen data
+### Impute new unseen data using Mixgb
 First we can split a dataset as training data and test data.
 ``` r
 set.seed(2021)
