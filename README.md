@@ -191,14 +191,14 @@ MIXGB<-Mixgb$new(data=.., nrounds=50,max_depth=6,gamma=0.1,eta=0.3,nthread=4,ear
 It is highly recommended to clean and check your data before feeding in the imputer. Here are some common issues:
 
 - Data should be a data frame.
+- ID should be removed 
 - Missing values should be coded as NA not NaN
 - Inf or -Inf are not allowed
+- Empty cells should be coded as NA or sensible values
 - Variables of "character" type should be converted to "factor" instead
 - Variables of "factor" type should have at least two levels
-
-The function `data_clean()` can do a preliminary check and fix some obvious problems. However, it would not fix all issues related to data quality. 
-
 ```
+
 cleanWithNA.df<-data_clean(rawdata=rawWithNA.df)
 ```
 
