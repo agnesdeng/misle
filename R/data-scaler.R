@@ -41,6 +41,9 @@ minmax_data <- function(data){
 
 
 
+
+
+
 #'This function back-transform data to an output as data matrix
 #'@param data A data frame
 #'@param colmin A vector that contains the minimum of each column

@@ -6,12 +6,12 @@
 variable_class<-function(data){
   binary<-NULL
   multiclass<-NULL
-  feature<-colnames(data)
-  for(i in 1:ncol(data)){
-    if(length(levels(data[,i]))==2){
-      binary=c(binary,feature[i])
-    }else if(length(levels(data[,i]))>2){
-      multiclass=c(multiclass,feature[i])
+  features<-colnames(data)
+  for(var in features){
+    if(nlevels(data[[var]])==2){
+      binary=c(binary,var)
+    }else if(nlevels(data[[var]])>2){
+      multiclass=c(multiclass,var)
     }
   }
   return(list("binary"=binary,"multiclass"=multiclass))
