@@ -231,4 +231,5 @@ feature_type<-function(data){
 
 
 
+output_structure(miss)
 
